@@ -1,3 +1,4 @@
-Todoist;https://www.todoist.com/de/help/articles/changelog-entries-from-2025-HD3jJAtLd
-1Password;https://releases.1password.com/windows/beta/index.xml
+App;URL;Order
+Todoist;https://www.todoist.com/de/help/articles/changelog-entries-from-2025-HD3jJAtLd;desc
+1Password;https://releases.1password.com/windows/beta/index.xml;desc
 Notion;https://x.com/NotionHQ
