@@ -1,0 +1,37 @@
+# App configuration — add new apps here.
+# parser: rss | todoist_html | notion_html | github_releases
+# github_releases: set github_repo (source_url is derived automatically)
+# logo_url: optional, defaults to /static/logos/{slug}.svg
+
+apps:
+  - slug: todoist
+    name: Todoist
+    color: "#E44332"
+    source_url: https://www.todoist.com/help/articles/2026-changelog-HD3jJAtLd
+    parser: todoist_html
+
+  - slug: 1password
+    name: 1Password
+    subtitle: Windows
+    color: "#0572EC"
+    source_url: https://releases.1password.com/windows/stable/index.xml
+    parser: rss
+
+  - slug: notion
+    name: Notion
+    color: "#191919"
+    source_url: https://www.notion.com/releases
+    parser: notion_html
+
+  - slug: actual
+    name: Actual Budget
+    color: "#6B46C1"
+    github_repo: actualbudget/actual
+    parser: github_releases
+
+  - slug: winutil
+    name: WinUtil
+    subtitle: Chris Titus Tech
+    color: "#2563EB"
+    github_repo: ChrisTitusTech/winutil
+    parser: github_releases

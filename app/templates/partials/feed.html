@@ -1,0 +1,53 @@
+{% if entries %}
+<ol class="feed-list" id="feed-list">
+  {% for entry in entries %}
+  <li class="feed-card{% if entry.app_slug not in selected_apps %} is-hidden{% endif %}" data-app-slug="{{ entry.app_slug }}">
+    <article class="feed-card__inner">
+      <header class="feed-card__header">
+        <div class="feed-card__app">
+          <span class="feed-card__dot" style="--chip-color: {{ entry.app_color }}" aria-hidden="true"></span>
+          <span class="feed-card__app-name">{{ entry.app_name }}</span>
+        </div>
+        <time class="feed-card__date" datetime="{{ entry.published_at.isoformat() }}">{{ entry.published_label }}</time>
+      </header>
+
+      <h3 class="feed-card__title">{{ entry.title }}</h3>
+
+      {% if entry.highlights %}
+      <ul class="feed-card__highlights">
+        {% for highlight in entry.highlights %}
+        <li>{{ highlight }}</li>
+        {% endfor %}
+      </ul>
+      {% elif entry.summary %}
+      <p class="feed-card__summary">{{ entry.summary }}</p>
+      {% endif %}
+
+      {% if entry.categories %}
+      <ul class="feed-card__badges" aria-label="Categories">
+        {% for category in entry.categories %}
+        <li><span class="badge badge--{{ category | lower }}">{{ category }}</span></li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+
+      <footer class="feed-card__footer">
+        <a class="feed-card__more" href="{{ entry.source_url }}" target="_blank" rel="noopener noreferrer">
+          more…
+        </a>
+      </footer>
+    </article>
+  </li>
+  {% endfor %}
+</ol>
+{% endif %}
+
+<div id="feed-empty-filtered" class="empty-state{% if entries and selected_apps %} is-hidden{% endif %}" role="status">
+  <p class="empty-state__title">No visible entries</p>
+  <p class="empty-state__text">Select at least one app on the left to see updates in the feed.</p>
+</div>
+
+<div id="feed-empty-sync" class="empty-state{% if entries %} is-hidden{% endif %}" role="status">
+  <p class="empty-state__title">No changelog data yet</p>
+  <p class="empty-state__text">The first sync runs on startup — wait a moment and refresh the page.</p>
+</div>

@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block body %}
+<div class="app-shell">
+  <header class="app-header" role="banner">
+    <div class="app-header__brand">
+      <span class="app-logo" aria-hidden="true">◉</span>
+      <div>
+        <h1 class="app-title">Changelogger</h1>
+        <p class="app-subtitle">Relevant updates for the apps you use</p>
+      </div>
+    </div>
+    <div class="app-header__actions">
+      <button type="button" class="icon-button" id="theme-toggle" aria-label="Toggle theme" title="Toggle theme">
+        <span class="theme-icon theme-icon--dark" aria-hidden="true">☀</span>
+        <span class="theme-icon theme-icon--light" aria-hidden="true">☾</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="app-layout">
+    <aside class="app-filter" aria-label="Filter apps">
+      <div class="app-filter__header">
+        <h2>Apps</h2>
+        <button type="button" class="text-button" id="select-all-apps">All</button>
+      </div>
+      <div class="app-chip-row" id="app-chip-row" role="group" aria-label="App selection">
+        {% for app in page.apps %}
+        <button
+          type="button"
+          class="app-chip{% if app.slug in page.selected_apps %} is-active{% endif %}"
+          data-app-slug="{{ app.slug }}"
+          aria-pressed="{{ 'true' if app.slug in page.selected_apps else 'false' }}"
+          aria-label="{{ app.display_name }}"
+          title="{{ app.display_name }}"
+          style="--chip-color: {{ app.color }}"
+        >
+          <img
+            class="app-chip__logo"
+            src="{{ app.logo_src }}?v={{ static_asset_version }}"
+            alt=""
+            width="28"
+            height="28"
+            loading="lazy"
+            decoding="async"
+          >
+          <span class="app-chip__tooltip" role="tooltip">{{ app.display_name }}</span>
+        </button>
+        {% endfor %}
+      </div>
+    </aside>
+
+    <main class="app-main" id="main-content">
+      <div class="feed-meta">
+        {% if page.last_sync %}
+        <p class="feed-meta__sync">Last updated: {{ page.last_sync.strftime('%b %d, %Y %H:%M') }} UTC</p>
+        {% else %}
+        <p class="feed-meta__sync">No data loaded yet…</p>
+        {% endif %}
+      </div>
+
+      {% if page.sync_errors %}
+      <div class="status-banner status-banner--warn" role="status">
+        {% for slug, message in page.sync_errors.items() %}
+        <p><strong>{{ slug }}</strong>: {{ message }}</p>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <div id="feed-root" aria-live="polite" aria-busy="false">
+        {% with entries=page.entries, selected_apps=page.selected_apps, sync_errors=page.sync_errors %}
+          {% include "partials/feed.html" %}
+        {% endwith %}
+      </div>
+    </main>
+  </div>
+</div>
+{% endblock %}
