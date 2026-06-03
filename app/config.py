@@ -8,7 +8,7 @@ import yaml
 
 from app.constants import CONFIG_PATH, ROOT_DIR
 
-ParserType = Literal["rss", "todoist_html", "notion_html", "github_releases"]
+ParserType = Literal["rss", "todoist_html", "notion_html", "github_releases", "capacities_html"]
 
 
 def github_releases_url(github_repo: str) -> str:

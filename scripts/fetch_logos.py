@@ -35,6 +35,11 @@ SOURCES = {
         "filename": "winutil.png",
         "source_note": "ChrisTitusTech GitHub organization avatar",
     },
+    "capacities": {
+        "url": "https://capacities.io/favicon.ico",
+        "filename": "capacities.ico",
+        "source_note": "capacities.io favicon",
+    },
 }
 
 

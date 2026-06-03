@@ -1,5 +1,5 @@
 # App configuration — add new apps here.
-# parser: rss | todoist_html | notion_html | github_releases
+# parser: rss | todoist_html | notion_html | github_releases | capacities_html
 # github_releases: set github_repo (source_url is derived automatically)
 # logo_url: optional, defaults to /static/logos/{slug}.svg
 
@@ -35,3 +35,9 @@ apps:
     color: "#2563EB"
     github_repo: ChrisTitusTech/winutil
     parser: github_releases
+
+  - slug: capacities
+    name: Capacities
+    color: "#4F46E5"
+    source_url: https://capacities.io/whats-new/
+    parser: capacities_html

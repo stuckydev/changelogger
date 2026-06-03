@@ -6,6 +6,7 @@ from app.config import AppConfig
 from app.constants import HTTP_TIMEOUT, USER_AGENT
 from app.services.normalize import finalize_entry
 from app.services.parsers.base import ParsedEntry
+from app.services.parsers.capacities_html import parse_capacities_html
 from app.services.parsers.github_releases import parse_github_releases
 from app.services.parsers.notion_html import parse_notion_html
 from app.services.parsers.rss import parse_rss
@@ -41,6 +42,8 @@ def parse_latest(app: AppConfig, content: str) -> ParsedEntry | None:
         entry = parse_notion_html(content, source_url=app.source_url)
     elif app.parser == "github_releases":
         entry = parse_github_releases(content)
+    elif app.parser == "capacities_html":
+        entry = parse_capacities_html(content, source_url=app.source_url)
     else:
         raise FetchError(app.slug, f"Unknown parser: {app.parser}")
 

@@ -57,7 +57,7 @@ Entry in `config/apps.yaml`:
     name: My App
     color: "#64748b"
     source_url: https://example.com/changelog
-    parser: rss          # rss | todoist_html | notion_html | github_releases
+    parser: rss          # rss | todoist_html | notion_html | github_releases | capacities_html
 
   # GitHub Releases (Atom feed):
   - slug: my-project
@@ -104,6 +104,8 @@ python scripts/fetch_logos.py
 | Actual Budget | [actualbudget/actual favicon](https://github.com/actualbudget/actual) |
 | WinUtil | [ChrisTitusTech GitHub avatar](https://github.com/ChrisTitusTech) |
 
+| Capacities | [capacities.io favicon](https://capacities.io/favicon.ico) |
+
 Override per app in `config/apps.yaml` with `logo_url:` if needed.
 
 ## Tracked apps
@@ -113,6 +115,7 @@ Override per app in `config/apps.yaml` with `logo_url:` if needed.
 - Notion — HTML releases page
 - Actual Budget — GitHub Releases (`actualbudget/actual`)
 - WinUtil — GitHub Releases (`ChrisTitusTech/winutil`)
+- Capacities — [What's New](https://capacities.io/whats-new/)
 
 ## Roadmap
 
