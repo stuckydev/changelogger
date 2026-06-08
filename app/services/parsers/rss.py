@@ -3,20 +3,34 @@ from __future__ import annotations
 import feedparser
 from bs4 import BeautifulSoup
 
-from app.date_utils import parse_datetime, parse_datetime_or_now
+from app.constants import ENTRIES_PER_APP
+from app.date_utils import parse_datetime_or_now
 from app.services.parsers.base import ParsedEntry
 from app.services.summarize import compact_summary, detect_categories, normalize_highlights
 
 
-def parse_rss(content: str) -> ParsedEntry | None:
+def parse_rss(content: str, *, limit: int = ENTRIES_PER_APP) -> list[ParsedEntry]:
     feed = feedparser.parse(content)
     if not feed.entries:
-        return None
+        return []
 
-    item = max(
+    sorted_items = sorted(
         feed.entries,
         key=lambda entry: parse_datetime_or_now(entry.get("published") or entry.get("updated")),
+        reverse=True,
     )
+
+    results: list[ParsedEntry] = []
+    for item in sorted_items:
+        entry = _parse_rss_item(item)
+        if entry is not None:
+            results.append(entry)
+        if len(results) >= limit:
+            break
+    return results
+
+
+def _parse_rss_item(item) -> ParsedEntry | None:
     title = (item.get("title") or "Release").strip()
     link = (item.get("link") or "").strip()
     external_id = (item.get("id") or link or title).strip()

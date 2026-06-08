@@ -5,10 +5,8 @@ import re
 from app.constants import HIGHLIGHT_LIMIT, HIGHLIGHT_MAX_CHARS
 
 CATEGORY_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
-    ("Security", re.compile(r"\b(security|cve|vulnerabilit)\b", re.I)),
-    ("Feature", re.compile(r"\b(new:|feature|introduc|launch|added|support for)\b|📣|⭐", re.I)),
     ("Fix", re.compile(r"\b(fixed|fix|bug|resolved)\b|🐛", re.I)),
-    ("Improvement", re.compile(r"\b(improv|enhanc|streamlin|update|optimiz|refactor)\b|⚙️", re.I)),
+    ("Update", re.compile(r"\b(new:|feature|introduc|launch|added|support for|improv|enhanc|streamlin|update|optimiz|refactor|security|cve|vulnerabilit)\b|📣|⭐|⚙️", re.I)),
 ]
 
 NOISE_RE = re.compile(
@@ -27,7 +25,7 @@ def detect_categories(text: str) -> list[str]:
             found.append(label)
     if not found:
         found.append("Update")
-    return found[:3]
+    return found[:2]
 
 
 def clean_bullet(text: str) -> str:

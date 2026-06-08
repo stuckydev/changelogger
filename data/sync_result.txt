@@ -1,0 +1,1 @@
+﻿errors {'todoist': '04.06.2026', '1password': '1Password for Windows 8.12.22', 'notion': 'Merge cells in simple tables', 'actual': 'Release 26.6.0', 'winutil': 'Pre-Release 26.06.08', 'capacities': 'v1.65.13', 'cursor': '3.7 À Design Mode Improvements', 'workinghours': 'WorkingHours Update', 'glazewm': 'v3.10.1'}

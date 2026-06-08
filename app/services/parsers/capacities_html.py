@@ -5,6 +5,8 @@ from datetime import datetime
 
 from bs4 import BeautifulSoup
 
+from app.constants import ENTRIES_PER_APP
+from app.services.normalize import pick_recent
 from app.services.parsers.base import ParsedEntry
 from app.services.summarize import detect_categories, normalize_highlights
 
@@ -12,10 +14,10 @@ VERSION_RE = re.compile(r"^v(\d+)\.(\d+)\.(\d+)$", re.I)
 SKIP_H2 = {"recent continuous improvements"}
 
 
-def parse_capacities_html(content: str, *, source_url: str) -> ParsedEntry | None:
+def parse_capacities_html(content: str, *, source_url: str, limit: int = ENTRIES_PER_APP) -> list[ParsedEntry]:
     soup = BeautifulSoup(content, "html.parser")
     base = source_url.rstrip("/")
-    releases: list[tuple[tuple[int, int, int], str, datetime, list[str], str | None]] = []
+    candidates: list[ParsedEntry] = []
 
     for h2 in soup.find_all("h2"):
         title = h2.get_text(" ", strip=True)
@@ -31,29 +33,26 @@ def parse_capacities_html(content: str, *, source_url: str) -> ParsedEntry | Non
         anchor_id = _anchor_id(h2)
         bullets = _extract_section_lines(h2)
         entry_url = f"{base}/#{anchor_id}" if anchor_id else base + "/"
+        highlights = normalize_highlights(bullets)
+        if not highlights:
+            continue
 
-        releases.append((version, title, published, bullets, entry_url))
+        categories = detect_categories(f"{title} {' '.join(highlights)}")
+        external_id = f"{title}:{published.date().isoformat()}"
 
-    if not releases:
-        return None
+        candidates.append(
+            ParsedEntry(
+                external_id=external_id,
+                title=title,
+                highlights=highlights,
+                summary=highlights[0],
+                categories=categories,
+                source_url=entry_url,
+                published_at=published,
+            )
+        )
 
-    version, title, published, bullets, entry_url = max(releases, key=lambda item: item[0])
-    highlights = normalize_highlights(bullets)
-    if not highlights:
-        raise ValueError("No highlights extracted from Capacities release")
-
-    categories = detect_categories(f"{title} {' '.join(highlights)}")
-    external_id = f"{title}:{published.date().isoformat()}"
-
-    return ParsedEntry(
-        external_id=external_id,
-        title=title,
-        highlights=highlights,
-        summary=highlights[0],
-        categories=categories,
-        source_url=entry_url,
-        published_at=published,
-    )
+    return pick_recent(candidates, limit=limit)
 
 
 def _release_date(h2) -> datetime:

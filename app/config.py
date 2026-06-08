@@ -8,7 +8,16 @@ import yaml
 
 from app.constants import CONFIG_PATH, ROOT_DIR
 
-ParserType = Literal["rss", "todoist_html", "notion_html", "github_releases", "capacities_html"]
+ParserType = Literal[
+    "rss",
+    "todoist_html",
+    "notion_html",
+    "github_releases",
+    "capacities_html",
+    "cursor_html",
+    "microsoft_store_html",
+    "zendesk_articles",
+]
 
 
 def github_releases_url(github_repo: str) -> str:
@@ -25,6 +34,7 @@ class AppConfig:
     subtitle: str | None = None
     github_repo: str | None = None
     logo_url: str | None = None
+    github_simple: bool = False
 
     @property
     def display_name(self) -> str:
@@ -69,8 +79,10 @@ def load_apps() -> tuple[AppConfig, ...]:
                 subtitle=item.get("subtitle"),
                 github_repo=github_repo,
                 logo_url=item.get("logo_url"),
+                github_simple=bool(item.get("github_simple")),
             )
         )
+    apps.sort(key=lambda app: (app.display_name.casefold(), app.slug))
     return tuple(apps)
 
 

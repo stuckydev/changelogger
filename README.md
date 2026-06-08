@@ -19,8 +19,8 @@ A lightweight web app that aggregates public changelogs for selected software pr
 - Dark mode (default) + light mode
 - Mobile-first layout with horizontally scrollable chips
 - Server-side fetch/parse layer (no browser CORS issues)
-- Background sync every 2 hours
-- One latest changelog entry per app, shown as a uniform bullet list
+- Background sync every 6 hours
+- Two most recent changelog entries per app, shown as a uniform bullet list
 
 ## Quick start (local)
 
@@ -34,10 +34,10 @@ Or manually:
 python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
-uvicorn app.main:app --reload --host 127.0.0.1 --port 8080
+uvicorn app.main:app --reload --host 127.0.0.1 --port 47173
 ```
 
-App: http://127.0.0.1:8080
+App: http://127.0.0.1:47173
 
 ## Docker
 
@@ -46,7 +46,7 @@ cp .env.example .env
 docker compose up --build -d
 ```
 
-Default port: `8080` (adjust via `.env`).
+Default port: `47173` (adjust via `.env`).
 
 ## Add a new app
 

@@ -8,9 +8,10 @@ from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session
 
 from app.config import load_apps
-from app.constants import COOKIE_SELECTED_APPS, COOKIE_THEME, DEFAULT_THEME
+from app.constants import COOKIE_READ_ENTRIES, COOKIE_SELECTED_APPS, COOKIE_THEME, DEFAULT_THEME
 from app.crud import latest_sync, list_entries
 from app.db import get_db
+from app.read_state import parse_read_entries
 from app.routers.render import PageContext, build_feed_views, render_page
 from app.selection import parse_selected_apps, should_persist_selection
 
@@ -36,12 +37,14 @@ def _build_context(db: Session, request: Request, *, is_loading: bool = False) -
     apps = list(load_apps())
     apps_by_slug = {app.slug: app for app in apps}
     selected = parse_selected_apps(request.cookies.get(COOKIE_SELECTED_APPS))
+    read_entries = parse_read_entries(request.cookies.get(COOKIE_READ_ENTRIES))
     entries = list_entries(db)
     sync_errors = request.app.state.sync_errors if hasattr(request.app.state, "sync_errors") else {}
 
     return PageContext(
         apps=apps,
         selected_apps=selected,
+        read_entries=read_entries,
         entries=build_feed_views(entries, apps_by_slug),
         theme=_theme_from_cookie(request.cookies.get(COOKIE_THEME)),
         last_sync=latest_sync(db),

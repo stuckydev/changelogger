@@ -10,7 +10,7 @@ services:
     env_file:
       - ../.env
     ports:
-      - "${PORT:-8080}:8000"
+      - "${PORT:-47173}:8000"
     volumes:
       - ../data:/app/data
       - ../config:/app/config:ro

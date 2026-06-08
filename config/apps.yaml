@@ -1,5 +1,5 @@
 # App configuration — add new apps here.
-# parser: rss | todoist_html | notion_html | github_releases | capacities_html
+# parser: rss | todoist_html | notion_html | github_releases | capacities_html | cursor_html | microsoft_store_html | zendesk_articles
 # github_releases: set github_repo (source_url is derived automatically)
 # logo_url: optional, defaults to /static/logos/{slug}.svg
 
@@ -35,9 +35,37 @@ apps:
     color: "#2563EB"
     github_repo: ChrisTitusTech/winutil
     parser: github_releases
+    github_simple: true
 
   - slug: capacities
     name: Capacities
     color: "#4F46E5"
     source_url: https://capacities.io/whats-new/
     parser: capacities_html
+
+  - slug: cursor
+    name: Cursor
+    color: "#14120B"
+    source_url: https://cursor.com/changelog
+    parser: cursor_html
+
+  - slug: workinghours
+    name: WorkingHours
+    subtitle: Windows
+    color: "#0EA5E9"
+    source_url: https://apps.microsoft.com/detail/9mv51b301wfd?hl=de-DE&gl=DE
+    parser: microsoft_store_html
+
+  - slug: glazewm
+    name: GlazeWM
+    color: "#6366F1"
+    github_repo: glzr-io/glazewm
+    parser: github_releases
+    github_simple: true
+
+  - slug: mtgarena
+    name: MTG Arena
+    subtitle: Client
+    color: "#E07B39"
+    source_url: https://mtgarena-support.wizards.com/api/v2/help_center/en-us/sections/4402585813268/articles.json?per_page=5&sort_by=created_at&sort_order=desc
+    parser: zendesk_articles

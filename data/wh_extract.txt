@@ -1,0 +1,5 @@
+﻿"whatsNew"\s*:\s*"((?:\\.|[^"])*)" 0 []
+"lastUpdateDate"\s*:\s*"([^"]+)" 0 []
+"version"\s*:\s*"([0-9.]+)" 1 ['2026.6.5.303']
+"productVersion"\s*:\s*"([^"]+)" 0 []
+whatsNew count 0

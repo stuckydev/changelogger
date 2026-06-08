@@ -2,11 +2,10 @@ from __future__ import annotations
 
 import re
 from datetime import datetime, timezone
-from urllib.parse import urljoin
-
 import feedparser
 from bs4 import BeautifulSoup
 
+from app.constants import ENTRIES_PER_APP
 from app.date_utils import date_from_dot_version, parse_datetime
 from app.services.parsers.base import ParsedEntry
 from app.services.release_notes_fetch import enrich_from_detail_url, pick_display_title
@@ -23,12 +22,71 @@ USELESS_HIGHLIGHT_RE = re.compile(
 )
 
 
-def parse_github_releases(content: str) -> ParsedEntry | None:
+def parse_github_releases_simple(content: str, *, limit: int = ENTRIES_PER_APP) -> list[ParsedEntry]:
     feed = feedparser.parse(content)
     if not feed.entries:
-        return None
+        return []
 
-    item = _pick_latest_entry(feed.entries)
+    results: list[ParsedEntry] = []
+    for item in feed.entries[:limit]:
+        entry = _parse_simple_release_item(item)
+        if entry is not None:
+            results.append(entry)
+    return results
+
+
+def _parse_simple_release_item(item) -> ParsedEntry | None:
+    raw_title = (item.get("title") or "Release").strip()
+    title = raw_title
+    link = (item.get("link") or "").strip()
+    external_id = (item.get("id") or link or title).strip()
+    published = _entry_published_at(raw_title, item)
+    html = _entry_html(item)
+    soup = BeautifulSoup(html, "html.parser") if html else None
+    raw_lines = _extract_simple_lines(soup) if soup else []
+    highlights = normalize_highlights(raw_lines) if raw_lines else [title]
+    categories = detect_categories(f"{title} {' '.join(highlights)}")
+
+    return ParsedEntry(
+        external_id=external_id,
+        title=title,
+        highlights=highlights,
+        summary=highlights[0],
+        categories=categories,
+        source_url=link or external_id,
+        published_at=published,
+    )
+
+
+def _extract_simple_lines(soup: BeautifulSoup) -> list[str]:
+    lines = [li.get_text(" ", strip=True) for li in soup.find_all("li") if li.get_text(" ", strip=True)]
+    if lines:
+        return lines
+
+    return [
+        p.get_text(" ", strip=True)
+        for p in soup.find_all("p")
+        if p.get_text(" ", strip=True) and not BOILERPLATE_RE.search(p.get_text(" ", strip=True))
+    ]
+
+
+def parse_github_releases(content: str, *, limit: int = ENTRIES_PER_APP) -> list[ParsedEntry]:
+    feed = feedparser.parse(content)
+    if not feed.entries:
+        return []
+
+    results: list[ParsedEntry] = []
+    for item in _pick_recent_entries(feed.entries, limit=limit):
+        try:
+            entry = _parse_release_item(item)
+        except ValueError:
+            continue
+        if entry is not None:
+            results.append(entry)
+    return results
+
+
+def _parse_release_item(item) -> ParsedEntry | None:
     raw_title = (item.get("title") or "Release").strip()
     version_title = RELEASE_TITLE_PREFIX.sub("", raw_title).strip() or raw_title
     link = (item.get("link") or "").strip()
@@ -90,13 +148,18 @@ def _entry_published_at(title: str, item) -> datetime:
     return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
-def _pick_latest_entry(entries):
+def _pick_recent_entries(entries, *, limit: int = ENTRIES_PER_APP):
+    picked = []
     for entry in entries:
         title = (entry.get("title") or "").lower()
         if title.startswith("pre-release"):
             continue
-        return entry
-    return entries[0]
+        picked.append(entry)
+        if len(picked) >= limit:
+            break
+    if not picked and entries:
+        return entries[:limit]
+    return picked
 
 
 def _entry_html(item) -> str:

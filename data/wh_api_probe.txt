@@ -1,0 +1,2 @@
+﻿https://apps.microsoft.com/api/Products/Get 200 text/html; charset=utf-8
+https://apps.microsoft.com/api/products/get 200 text/html; charset=utf-8

@@ -1,0 +1,7 @@
+﻿no NEXT_DATA
+application/ld+json 4
+changelog 114
+releases 0
+glazewm entries 2
+ - v3.10.1 2026-03-21 ['Fixed regression for lwin / rwin / win keybindings not working. ( #1318 by @freddiehaddad )', "Fixed parse error when using keybindings with ` and ' ( #1324 )"]
+ - v3.10.0 2026-03-16 ['macOS support - GlazeWM now runs on macOS. ( #1272 )', 'Auto-launch on startup - a new tray menu option to launch GlazeWM on system startup. ( #1116 by @AntoineGS )']

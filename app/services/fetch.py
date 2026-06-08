@@ -3,14 +3,17 @@ from __future__ import annotations
 import httpx
 
 from app.config import AppConfig
-from app.constants import HTTP_TIMEOUT, USER_AGENT
-from app.services.normalize import finalize_entry
+from app.constants import HIGHLIGHT_LIMIT, HTTP_TIMEOUT, USER_AGENT, ZENDESK_HIGHLIGHT_LIMIT
+from app.services.normalize import finalize_entry, pick_recent
 from app.services.parsers.base import ParsedEntry
 from app.services.parsers.capacities_html import parse_capacities_html
-from app.services.parsers.github_releases import parse_github_releases
+from app.services.parsers.cursor_html import parse_cursor_html
+from app.services.parsers.github_releases import parse_github_releases, parse_github_releases_simple
+from app.services.parsers.microsoft_store_html import parse_microsoft_store_html
 from app.services.parsers.notion_html import parse_notion_html
 from app.services.parsers.rss import parse_rss
 from app.services.parsers.todoist_html import parse_todoist_html
+from app.services.parsers.zendesk_articles import parse_zendesk_articles
 
 
 class FetchError(Exception):
@@ -32,21 +35,33 @@ async def fetch_source(app: AppConfig) -> str:
         return response.text
 
 
-def parse_latest(app: AppConfig, content: str) -> ParsedEntry | None:
-    entry: ParsedEntry | None
+def parse_recent(app: AppConfig, content: str) -> list[ParsedEntry]:
+    entries: list[ParsedEntry]
     if app.parser == "rss":
-        entry = parse_rss(content)
+        entries = parse_rss(content)
     elif app.parser == "todoist_html":
-        entry = parse_todoist_html(content, source_url=app.source_url)
+        entries = parse_todoist_html(content, source_url=app.source_url)
     elif app.parser == "notion_html":
-        entry = parse_notion_html(content, source_url=app.source_url)
+        entries = parse_notion_html(content, source_url=app.source_url)
     elif app.parser == "github_releases":
-        entry = parse_github_releases(content)
+        if app.github_simple:
+            entries = parse_github_releases_simple(content)
+        else:
+            entries = parse_github_releases(content)
     elif app.parser == "capacities_html":
-        entry = parse_capacities_html(content, source_url=app.source_url)
+        entries = parse_capacities_html(content, source_url=app.source_url)
+    elif app.parser == "cursor_html":
+        entries = parse_cursor_html(content, source_url=app.source_url)
+    elif app.parser == "microsoft_store_html":
+        entries = parse_microsoft_store_html(content, source_url=app.source_url)
+    elif app.parser == "zendesk_articles":
+        entries = parse_zendesk_articles(content, source_url=app.source_url)
     else:
         raise FetchError(app.slug, f"Unknown parser: {app.parser}")
 
-    if entry is None:
+    highlight_limit = ZENDESK_HIGHLIGHT_LIMIT if app.parser == "zendesk_articles" else HIGHLIGHT_LIMIT
+    entries = [finalize_entry(entry, highlight_limit=highlight_limit) for entry in entries]
+    entries = pick_recent(entries)
+    if not entries:
         raise FetchError(app.slug, "No changelog entry found in source")
-    return finalize_entry(entry)
+    return entries

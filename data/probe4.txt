@@ -1,0 +1,2 @@
+﻿https://displaycatalog.mp.microsoft.com/v7.0/products/lookup 400
+https://displaycatalog.mp.microsoft.com/v7.0/products/49297T.Partl.ClockOut 404

@@ -1,34 +1,53 @@
 {% if entries %}
+{% set read_entries = read_entries|default([]) %}
 <ol class="feed-list" id="feed-list">
+  {% set ns = namespace(current_month=none) %}
   {% for entry in entries %}
-  <li class="feed-card{% if entry.app_slug not in selected_apps %} is-hidden{% endif %}" data-app-slug="{{ entry.app_slug }}">
+  {% set entry_month = entry.published_at | month_key %}
+  {% if entry_month != ns.current_month %}
+  {% set ns.current_month = entry_month %}
+  <li class="feed-month-divider" data-month="{{ entry_month }}" aria-hidden="true">
+    <span class="feed-month-divider__label">{{ entry.published_at | month_year }}</span>
+  </li>
+  {% endif %}
+  <li class="feed-card{% if entry.app_slug not in selected_apps %} is-hidden{% endif %}{% if entry.id in read_entries %} is-read{% endif %}" data-entry-id="{{ entry.id }}" data-app-slug="{{ entry.app_slug }}" data-month="{{ entry_month }}">
     <article class="feed-card__inner">
       <header class="feed-card__header">
+        <button
+          type="button"
+          class="feed-card__read-toggle"
+          aria-label="{% if entry.id in read_entries %}Als ungelesen markieren{% else %}Als gelesen markieren{% endif %}"
+          aria-pressed="{% if entry.id in read_entries %}true{% else %}false{% endif %}"
+        >
+          <span class="feed-card__read-indicator" aria-hidden="true"></span>
+        </button>
         <div class="feed-card__app">
-          <span class="feed-card__dot" style="--chip-color: {{ entry.app_color }}" aria-hidden="true"></span>
+          <img
+            class="feed-card__logo"
+            src="{{ entry.app_logo_src }}?v={{ static_asset_version }}"
+            alt=""
+            width="24"
+            height="24"
+            loading="lazy"
+            decoding="async"
+          >
           <span class="feed-card__app-name">{{ entry.app_name }}</span>
         </div>
         <time class="feed-card__date" datetime="{{ entry.published_at.isoformat() }}">{{ entry.published_label }}</time>
       </header>
 
-      <h3 class="feed-card__title">{{ entry.title }}</h3>
+      {% if entry.title and entry.title != entry.published_label %}
+      <h3 class="feed-card__title">{% if entry.app_slug == 'mtgarena' %}{{ entry.title | mtg_terms }}{% else %}{{ entry.title }}{% endif %}</h3>
+      {% endif %}
 
       {% if entry.highlights %}
       <ul class="feed-card__highlights">
         {% for highlight in entry.highlights %}
-        <li>{{ highlight }}</li>
+        <li>{% if entry.app_slug == 'mtgarena' %}{{ highlight | mtg_terms }}{% else %}{{ highlight }}{% endif %}</li>
         {% endfor %}
       </ul>
       {% elif entry.summary %}
-      <p class="feed-card__summary">{{ entry.summary }}</p>
-      {% endif %}
-
-      {% if entry.categories %}
-      <ul class="feed-card__badges" aria-label="Categories">
-        {% for category in entry.categories %}
-        <li><span class="badge badge--{{ category | lower }}">{{ category }}</span></li>
-        {% endfor %}
-      </ul>
+      <p class="feed-card__summary">{% if entry.app_slug == 'mtgarena' %}{{ entry.summary | mtg_terms }}{% else %}{{ entry.summary }}{% endif %}</p>
       {% endif %}
 
       <footer class="feed-card__footer">
@@ -44,7 +63,7 @@
 
 <div id="feed-empty-filtered" class="empty-state{% if entries and selected_apps %} is-hidden{% endif %}" role="status">
   <p class="empty-state__title">No visible entries</p>
-  <p class="empty-state__text">Select at least one app on the left to see updates in the feed.</p>
+  <p class="empty-state__text">Open the menu and select at least one app to see updates in the feed.</p>
 </div>
 
 <div id="feed-empty-sync" class="empty-state{% if entries %} is-hidden{% endif %}" role="status">

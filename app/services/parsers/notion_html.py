@@ -6,13 +6,15 @@ from urllib.parse import urljoin
 
 from bs4 import BeautifulSoup
 
+from app.constants import ENTRIES_PER_APP
+from app.services.normalize import pick_recent
 from app.services.parsers.base import ParsedEntry
 from app.services.summarize import detect_categories, normalize_highlights
 
 RELEASE_HREF_RE = re.compile(r"^/releases/(\d{4}-\d{2}-\d{2})/?$")
 
 
-def parse_notion_html(content: str, *, source_url: str) -> ParsedEntry | None:
+def parse_notion_html(content: str, *, source_url: str, limit: int = ENTRIES_PER_APP) -> list[ParsedEntry]:
     soup = BeautifulSoup(content, "html.parser")
     base = source_url.rstrip("/")
     candidates: list[ParsedEntry] = []
@@ -57,9 +59,7 @@ def parse_notion_html(content: str, *, source_url: str) -> ParsedEntry | None:
             )
         )
 
-    if not candidates:
-        return None
-    return max(candidates, key=lambda item: item.published_at)
+    return pick_recent(candidates, limit=limit)
 
 
 def _extract_lines(article) -> list[str]:

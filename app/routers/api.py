@@ -8,9 +8,10 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.config import all_slugs, load_apps
-from app.constants import COOKIE_SELECTED_APPS, COOKIE_THEME
+from app.constants import COOKIE_READ_ENTRIES, COOKIE_SELECTED_APPS, COOKIE_THEME
 from app.crud import list_entries
 from app.db import get_db
+from app.read_state import normalize_read_entries, parse_read_entries, serialize_read_entries
 from app.routers.render import build_feed_views, render_page
 from app.selection import parse_selected_apps
 
@@ -20,6 +21,7 @@ router = APIRouter(prefix="/api")
 class PreferencesPayload(BaseModel):
     selected_apps: list[str] = Field(default_factory=list)
     theme: str | None = None
+    read_entries: list[str] | None = None
 
 
 def _cookie_kwargs(max_age: int = 60 * 60 * 24 * 365) -> dict:
@@ -34,6 +36,7 @@ def _cookie_kwargs(max_age: int = 60 * 60 * 24 * 365) -> dict:
 @router.get("/feed", response_class=HTMLResponse)
 def feed_partial(request: Request, db: Annotated[Session, Depends(get_db)]):
     selected = parse_selected_apps(request.cookies.get(COOKIE_SELECTED_APPS))
+    read_entries = parse_read_entries(request.cookies.get(COOKIE_READ_ENTRIES))
     apps_by_slug = {app.slug: app for app in load_apps()}
     entries = list_entries(db)
 
@@ -43,7 +46,7 @@ def feed_partial(request: Request, db: Annotated[Session, Depends(get_db)]):
         {
             "entries": build_feed_views(entries, apps_by_slug),
             "selected_apps": selected,
-            "sync_errors": getattr(request.app.state, "sync_errors", {}),
+            "read_entries": read_entries,
         },
     )
 
@@ -52,8 +55,6 @@ def feed_partial(request: Request, db: Annotated[Session, Depends(get_db)]):
 def save_preferences(payload: PreferencesPayload, response: Response):
     known = set(all_slugs())
     selected = [slug for slug in payload.selected_apps if slug in known]
-    if not selected:
-        selected = all_slugs()
 
     response.set_cookie(
         COOKIE_SELECTED_APPS,
@@ -62,6 +63,13 @@ def save_preferences(payload: PreferencesPayload, response: Response):
     )
     if payload.theme in {"light", "dark"}:
         response.set_cookie(COOKIE_THEME, payload.theme, **_cookie_kwargs())
+    if payload.read_entries is not None:
+        read_entries = normalize_read_entries(payload.read_entries)
+        response.set_cookie(
+            COOKIE_READ_ENTRIES,
+            serialize_read_entries(read_entries),
+            **_cookie_kwargs(),
+        )
 
     return JSONResponse({"ok": True, "selected_apps": selected, "theme": payload.theme})
 

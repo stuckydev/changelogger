@@ -17,8 +17,8 @@ class ParsedEntry:
     summary: str = ""
 
 
-def make_entry_id(app_slug: str) -> str:
-    digest = hashlib.sha256(f"{app_slug}:latest".encode()).hexdigest()
+def make_entry_id(app_slug: str, external_id: str) -> str:
+    digest = hashlib.sha256(f"{app_slug}:{external_id}".encode()).hexdigest()
     return digest[:32]
 
 

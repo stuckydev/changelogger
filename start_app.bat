@@ -10,4 +10,4 @@ pip install -r requirements.txt
 
 if not exist data mkdir data
 
-uvicorn app.main:app --reload --host 127.0.0.1 --port 8080
+uvicorn app.main:app --reload --host 127.0.0.1 --port 47173

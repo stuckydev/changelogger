@@ -1,0 +1,8 @@
+﻿len 455842
+hourly rate True
+SubTotal True
+Neuerungen True
+releaseNotes False
+WhatsNew True
+lastUpdateDate True
+softwareVersion False
