@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import datetime
+
 import httpx
 
 from app.config import AppConfig
@@ -36,7 +38,13 @@ from app.services.normalize import finalize_entry, pick_recent
 from app.services.parsers.base import ParsedEntry
 from app.services.parsers.capacities_html import parse_capacities_html
 from app.services.parsers.cursor_html import parse_cursor_html
-from app.services.parsers.github_releases import parse_github_releases, parse_github_releases_simple
+from app.date_utils import parse_datetime
+from app.services.parsers.github_releases import (
+    apply_github_release_dates,
+    parse_github_releases,
+    parse_github_releases_simple,
+    _tag_lookup_keys,
+)
 from app.services.parsers.microsoft_store_html import parse_microsoft_store_html
 from app.services.parsers.notion_html import parse_notion_html
 from app.services.parsers.rss import parse_rss
@@ -58,7 +66,28 @@ async def fetch_source(app: AppConfig) -> str:
     return response.text
 
 
-def parse_recent(app: AppConfig, content: str) -> list[ParsedEntry]:
+async def fetch_github_release_dates(github_repo: str) -> dict[str, datetime]:
+    client = await get_http_client()
+    response = await client.get(
+        f"https://api.github.com/repos/{github_repo}/releases",
+        params={"per_page": 30},
+        headers={"Accept": "application/vnd.github+json"},
+    )
+    if response.status_code >= 400:
+        return {}
+
+    dates: dict[str, datetime] = {}
+    for release in response.json():
+        tag_name = (release.get("tag_name") or "").strip()
+        published = parse_datetime(release.get("published_at"))
+        if not tag_name or published is None:
+            continue
+        for key in _tag_lookup_keys(tag_name):
+            dates[key] = published
+    return dates
+
+
+async def parse_recent(app: AppConfig, content: str) -> list[ParsedEntry]:
     entries: list[ParsedEntry]
     if app.parser == "rss":
         entries = parse_rss(content)
@@ -81,6 +110,10 @@ def parse_recent(app: AppConfig, content: str) -> list[ParsedEntry]:
         entries = parse_zendesk_articles(content, source_url=app.source_url)
     else:
         raise FetchError(app.slug, f"Unknown parser: {app.parser}")
+
+    if app.parser == "github_releases" and app.github_repo:
+        release_dates = await fetch_github_release_dates(app.github_repo)
+        entries = apply_github_release_dates(entries, release_dates)
 
     highlight_limit = ZENDESK_HIGHLIGHT_LIMIT if app.parser == "zendesk_articles" else HIGHLIGHT_LIMIT
     entries = [finalize_entry(entry, highlight_limit=highlight_limit) for entry in entries]

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from dataclasses import replace
 from datetime import datetime, timezone
 import feedparser
 from bs4 import BeautifulSoup
@@ -12,6 +13,8 @@ from app.services.release_notes_fetch import enrich_from_detail_url, pick_displa
 from app.services.summarize import compact_summary, detect_categories, normalize_highlights
 
 RELEASE_TITLE_PREFIX = re.compile(r"^(Pre-Release|Release)\s+", re.I)
+RELEASE_TAG_RE = re.compile(r"(?:pre-)?release\s+(v?[\d][\w.\-]*)", re.I)
+BARE_TAG_RE = re.compile(r"^(v?[\d][\w.\-]*)$", re.I)
 BOILERPLATE_RE = re.compile(
     r"(microsoft store updates can sometimes lag|download|flathub|view release notes|please note:)",
     re.I,
@@ -20,6 +23,64 @@ USELESS_HIGHLIGHT_RE = re.compile(
     r"see the full release notes|view release notes|please note:",
     re.I,
 )
+
+
+def release_tag_lookup_keys(title: str) -> list[str]:
+    title = title.strip()
+    keys: list[str] = []
+
+    release_match = RELEASE_TAG_RE.search(title)
+    if release_match:
+        keys.extend(_tag_lookup_keys(release_match.group(1)))
+
+    bare_match = BARE_TAG_RE.match(title)
+    if bare_match:
+        keys.extend(_tag_lookup_keys(bare_match.group(1)))
+
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for key in keys:
+        if key not in seen:
+            seen.add(key)
+            ordered.append(key)
+    return ordered
+
+
+def _tag_lookup_keys(tag: str) -> list[str]:
+    tag = tag.strip()
+    if not tag:
+        return []
+    lowered = tag.lower()
+    bare = tag.lstrip("vV").lower()
+    keys = [lowered, bare, f"v{bare}"]
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for key in keys:
+        if key not in seen:
+            seen.add(key)
+            ordered.append(key)
+    return ordered
+
+
+def apply_github_release_dates(
+    entries: list[ParsedEntry],
+    date_by_tag: dict[str, datetime],
+) -> list[ParsedEntry]:
+    if not date_by_tag:
+        return entries
+
+    enriched: list[ParsedEntry] = []
+    for entry in entries:
+        published = None
+        for key in release_tag_lookup_keys(entry.title):
+            published = date_by_tag.get(key)
+            if published is not None:
+                break
+        if published is None:
+            enriched.append(entry)
+            continue
+        enriched.append(replace(entry, published_at=published))
+    return enriched
 
 
 def parse_github_releases_simple(content: str, *, limit: int = ENTRIES_PER_APP) -> list[ParsedEntry]:

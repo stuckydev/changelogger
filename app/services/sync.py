@@ -65,7 +65,7 @@ def upsert_recent(db: Session, app: AppConfig, entries: list[ParsedEntry]) -> No
 async def _fetch_entries(app: AppConfig) -> tuple[AppConfig, list[ParsedEntry] | FetchError]:
     try:
         content = await fetch_source(app)
-        return app, parse_recent(app, content)
+        return app, await parse_recent(app, content)
     except FetchError as exc:
         return app, exc
     except Exception as exc:

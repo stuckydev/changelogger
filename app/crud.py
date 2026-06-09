@@ -29,3 +29,12 @@ def count_entries(db: Session) -> int:
 
 def latest_sync(db: Session) -> datetime | None:
     return db.scalar(select(ChangelogEntry.fetched_at).order_by(ChangelogEntry.fetched_at.desc()).limit(1))
+
+
+def latest_published_per_app(db: Session) -> dict[str, datetime]:
+    rows = db.execute(
+        select(ChangelogEntry.app_slug, func.max(ChangelogEntry.published_at)).group_by(
+            ChangelogEntry.app_slug
+        )
+    )
+    return {slug: published_at for slug, published_at in rows.all()}

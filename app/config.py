@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 from functools import lru_cache
 from typing import Literal
 
@@ -8,6 +9,17 @@ import yaml
 
 from app.constants import CONFIG_PATH, ROOT_DIR
 from app.services.logo_thumbs import thumb_url_for_slug
+
+AppCategory = Literal["saas", "selfhosted", "games", "utilities"]
+
+CATEGORY_LABELS: dict[AppCategory, str] = {
+    "saas": "SaaS",
+    "selfhosted": "Selfhosted",
+    "games": "Game",
+    "utilities": "Utility",
+}
+
+CATEGORY_ORDER: tuple[AppCategory, ...] = ("saas", "selfhosted", "games", "utilities")
 
 ParserType = Literal[
     "rss",
@@ -41,6 +53,13 @@ def _resolve_logo_src(slug: str, logo_url: str | None) -> str:
 
 
 @dataclass(frozen=True)
+class AppCategoryGroup:
+    key: AppCategory
+    label: str
+    apps: tuple[AppConfig, ...]
+
+
+@dataclass(frozen=True)
 class AppConfig:
     slug: str
     name: str
@@ -48,6 +67,7 @@ class AppConfig:
     source_url: str
     parser: ParserType
     logo_src: str
+    category: AppCategory
     subtitle: str | None = None
     github_repo: str | None = None
     logo_url: str | None = None
@@ -58,6 +78,10 @@ class AppConfig:
         if self.subtitle:
             return f"{self.name} ({self.subtitle})"
         return self.name
+
+    @property
+    def category_label(self) -> str:
+        return CATEGORY_LABELS[self.category]
 
 
 @lru_cache
@@ -77,6 +101,12 @@ def load_apps() -> tuple[AppConfig, ...]:
             raise ValueError(f"App '{item['slug']}': source_url is required")
 
         slug = item["slug"]
+        raw_category = item.get("category", "utilities")
+        if raw_category not in CATEGORY_LABELS:
+            raise ValueError(
+                f"App '{slug}': category must be one of {', '.join(CATEGORY_ORDER)}, got '{raw_category}'"
+            )
+        category: AppCategory = raw_category
         apps.append(
             AppConfig(
                 slug=slug,
@@ -85,13 +115,13 @@ def load_apps() -> tuple[AppConfig, ...]:
                 source_url=source_url,
                 parser=parser,
                 logo_src=_resolve_logo_src(slug, item.get("logo_url")),
+                category=category,
                 subtitle=item.get("subtitle"),
                 github_repo=github_repo,
                 logo_url=item.get("logo_url"),
                 github_simple=bool(item.get("github_simple")),
             )
         )
-    apps.sort(key=lambda app: (app.display_name.casefold(), app.slug))
     return tuple(apps)
 
 
@@ -106,3 +136,46 @@ def get_app(slug: str) -> AppConfig | None:
 
 def all_slugs() -> list[str]:
     return [app.slug for app in load_apps()]
+
+
+def _sort_apps_by_last_update(
+    apps: list[AppConfig],
+    last_updates: dict[str, datetime],
+) -> list[AppConfig]:
+    return sorted(
+        apps,
+        key=lambda app: (
+            -(last_updates[app.slug].timestamp()) if app.slug in last_updates else float("inf"),
+            app.slug,
+        ),
+    )
+
+
+def apps_sorted_by_last_update(
+    last_updates: dict[str, datetime] | None = None,
+) -> tuple[AppConfig, ...]:
+    updates = last_updates or {}
+    return tuple(_sort_apps_by_last_update(list(load_apps()), updates))
+
+
+def apps_grouped_by_category(
+    last_updates: dict[str, datetime] | None = None,
+) -> tuple[AppCategoryGroup, ...]:
+    updates = last_updates or {}
+    by_category: dict[AppCategory, list[AppConfig]] = {key: [] for key in CATEGORY_ORDER}
+    for app in load_apps():
+        by_category[app.category].append(app)
+
+    groups: list[AppCategoryGroup] = []
+    for key in CATEGORY_ORDER:
+        category_apps = by_category[key]
+        if not category_apps:
+            continue
+        groups.append(
+            AppCategoryGroup(
+                key=key,
+                label=CATEGORY_LABELS[key],
+                apps=tuple(_sort_apps_by_last_update(category_apps, updates)),
+            )
+        )
+    return tuple(groups)

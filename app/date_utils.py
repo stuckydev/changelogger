@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
 from zoneinfo import ZoneInfo
 
@@ -57,3 +57,16 @@ def utc_naive_to_display(value: datetime) -> datetime:
 
 def format_sync_time(value: datetime) -> str:
     return utc_naive_to_display(value).strftime("%d.%m.%Y %H:%M")
+
+
+def update_freshness(value: datetime | None) -> str:
+    """Return a CSS modifier for how recent an app's last update is."""
+    if value is None:
+        return ""
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    age = now - value
+    if age <= timedelta(days=30):
+        return "fresh"
+    if age <= timedelta(days=180):
+        return "aging"
+    return "stale"

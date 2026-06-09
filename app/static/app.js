@@ -1,60 +1,65 @@
 (function () {
   const APP_PREFIX = "clg";
-  const COOKIE_SELECTED = `${APP_PREFIX}_selected_apps`;
+  const COOKIE_MUTED = `${APP_PREFIX}_muted_apps`;
   const COOKIE_THEME = `${APP_PREFIX}_theme`;
   const THEME_KEY = `${APP_PREFIX}-theme`;
 
   const filterList = document.getElementById("app-filter-list");
   const feedRoot = document.getElementById("feed-root");
-  const selectAllBtn = document.getElementById("select-all-apps");
+  const clearMutedBtn = document.getElementById("clear-muted-apps");
   const filterCount = document.getElementById("app-filter-count");
   const themeToggle = document.getElementById("theme-toggle");
   const sidebar = document.getElementById("app-sidebar");
   const sidebarToggle = document.getElementById("sidebar-toggle");
   const sidebarBackdrop = document.getElementById("sidebar-backdrop");
+  const mobileSidebarQuery = window.matchMedia("(max-width: 47.99rem)");
+  const coarsePointerQuery = window.matchMedia("(hover: none), (pointer: coarse)");
 
-  function updateFilterCount() {
-    if (!filterCount || !filterList) return;
-    const inputs = filterList.querySelectorAll(".app-toggle__input");
-    const selected = filterList.querySelectorAll(".app-toggle__input:checked");
-    filterCount.textContent = `${selected.length}/${inputs.length}`;
+  let focusedAppSlug = null;
+
+  function isMobileSidebar() {
+    return mobileSidebarQuery.matches;
   }
 
-  function hasSelectionCookie() {
-    return document.cookie.split("; ").some((part) => part.startsWith(`${COOKIE_SELECTED}=`));
+  function usesTapFocus() {
+    return coarsePointerQuery.matches;
   }
 
-  function readSelectedFromDom() {
+  function readMutedFromDom() {
     return Array.from(filterList.querySelectorAll(".app-toggle__input:checked")).map(
       (input) => input.dataset.appSlug
     );
   }
 
-  function setToggleState(slug, active) {
-    const input = filterList.querySelector(`.app-toggle__input[data-app-slug="${slug}"]`);
-    if (!input) return;
-    input.checked = active;
+  function updateFilterCount() {
+    if (!filterCount || !filterList) return;
+    const inputs = filterList.querySelectorAll(".app-toggle__input");
+    const muted = filterList.querySelectorAll(".app-toggle__input:checked");
+    const mutedCount = muted.length;
+
+    if (mutedCount === 0) {
+      filterCount.textContent = "";
+      filterCount.hidden = true;
+      if (clearMutedBtn) clearMutedBtn.hidden = true;
+      return;
+    }
+
+    filterCount.hidden = false;
+    filterCount.textContent = `${mutedCount}/${inputs.length}`;
+    if (clearMutedBtn) clearMutedBtn.hidden = false;
   }
 
-  function selectAllToggles() {
-    filterList.querySelectorAll(".app-toggle__input").forEach((input) => {
-      input.checked = true;
-    });
-  }
-
-  function deselectAllToggles() {
+  function clearAllMutes() {
     filterList.querySelectorAll(".app-toggle__input").forEach((input) => {
       input.checked = false;
     });
+    filterList.querySelectorAll(".app-filter-item__mute-btn").forEach((btn) => {
+      btn.setAttribute("aria-pressed", "false");
+    });
   }
 
-  function allTogglesSelected() {
-    const inputs = filterList.querySelectorAll(".app-toggle__input");
-    return inputs.length > 0 && Array.from(inputs).every((input) => input.checked);
-  }
-
-  function savePreferences(selectedApps, theme) {
-    const payload = { selected_apps: selectedApps, theme: theme || null };
+  function savePreferences(mutedApps, theme) {
+    const payload = { muted_apps: mutedApps, theme: theme || null };
     return fetch("/api/preferences", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -78,6 +83,7 @@
       })
       .then((html) => {
         feedRoot.innerHTML = html;
+        applyFeedFocus();
       })
       .catch((error) => {
         console.error(error);
@@ -87,15 +93,109 @@
       });
   }
 
-  function persistSelection(selectedApps) {
-    return savePreferences(selectedApps, document.documentElement.dataset.theme)
+  function persistMutedApps(mutedApps) {
+    return savePreferences(mutedApps, document.documentElement.dataset.theme)
       .then(() => refreshFeed())
       .catch((error) => {
         console.error(error);
       });
   }
 
+  function updateFeedDividers() {
+    const feedList = feedRoot?.querySelector("#feed-list");
+    if (!feedList) return;
+
+    const items = Array.from(feedList.children);
+    for (let index = 0; index < items.length; index += 1) {
+      const item = items[index];
+      if (!item.classList.contains("feed-month-divider")) continue;
+
+      let hasVisible = false;
+      for (let next = index + 1; next < items.length; next += 1) {
+        if (items[next].classList.contains("feed-month-divider")) break;
+        if (!items[next].classList.contains("is-hidden")) {
+          hasVisible = true;
+          break;
+        }
+      }
+      item.classList.toggle("is-hidden", !hasVisible);
+    }
+  }
+
+  function updateFeedEmptyStates() {
+    const feedList = feedRoot?.querySelector("#feed-list");
+    const emptyFiltered = feedRoot?.querySelector("#feed-empty-filtered");
+    if (!emptyFiltered) return;
+
+    const cards = feedList ? feedList.querySelectorAll(".feed-card") : [];
+    const visibleCards = feedList ? feedList.querySelectorAll(".feed-card:not(.is-hidden)") : [];
+    const showEmpty = cards.length > 0 && visibleCards.length === 0;
+    emptyFiltered.classList.toggle("is-hidden", !showEmpty);
+  }
+
+  function applyFeedFocus() {
+    const feedList = feedRoot?.querySelector("#feed-list");
+    if (!feedList) return;
+
+    feedList.querySelectorAll(".feed-card").forEach((card) => {
+      const visible = !focusedAppSlug || card.dataset.appSlug === focusedAppSlug;
+      card.classList.toggle("is-hidden", !visible);
+    });
+
+    updateFeedDividers();
+    updateFeedEmptyStates();
+  }
+
+  function setFocusedApp(slug) {
+    focusedAppSlug = slug || null;
+    if (!filterList) return;
+
+    filterList.classList.toggle("is-focusing", Boolean(focusedAppSlug));
+    filterList.querySelectorAll(".app-filter-item").forEach((item) => {
+      item.classList.toggle("is-focused", item.dataset.appSlug === focusedAppSlug);
+    });
+    applyFeedFocus();
+  }
+
+  function toggleMute(slug) {
+    const input = filterList.querySelector(`.app-toggle__input[data-app-slug="${slug}"]`);
+    const muteBtn = filterList.querySelector(`.app-filter-item__mute-btn[data-app-slug="${slug}"]`);
+    if (!input) return;
+
+    input.checked = !input.checked;
+    if (muteBtn) {
+      muteBtn.setAttribute("aria-pressed", input.checked ? "true" : "false");
+    }
+
+    const nextMuted = readMutedFromDom();
+    updateFilterCount();
+    persistMutedApps(nextMuted);
+  }
+
+  function syncSidebarLayout() {
+    if (!sidebar || !sidebarToggle) return;
+
+    if (isMobileSidebar()) {
+      const isOpen = sidebar.classList.contains("is-open");
+      sidebar.setAttribute("aria-hidden", isOpen ? "false" : "true");
+      sidebarToggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+      sidebarToggle.setAttribute("aria-label", isOpen ? "Close menu" : "Open menu");
+      return;
+    }
+
+    sidebar.classList.remove("is-open");
+    sidebar.setAttribute("aria-hidden", "false");
+    sidebarToggle.setAttribute("aria-expanded", "false");
+    sidebarToggle.setAttribute("aria-label", "Open menu");
+    if (sidebarBackdrop) {
+      sidebarBackdrop.classList.remove("is-visible");
+      sidebarBackdrop.hidden = true;
+    }
+    document.body.classList.remove("sidebar-open");
+  }
+
   function openSidebar() {
+    if (!isMobileSidebar()) return;
     sidebar.classList.add("is-open");
     sidebar.setAttribute("aria-hidden", "false");
     sidebarToggle.setAttribute("aria-expanded", "true");
@@ -108,6 +208,7 @@
   }
 
   function closeSidebar() {
+    if (!isMobileSidebar()) return;
     sidebar.classList.remove("is-open");
     sidebar.setAttribute("aria-hidden", "true");
     sidebarToggle.setAttribute("aria-expanded", "false");
@@ -126,6 +227,7 @@
   }
 
   function toggleSidebar() {
+    if (!isMobileSidebar()) return;
     if (sidebar.classList.contains("is-open")) {
       closeSidebar();
     } else {
@@ -133,37 +235,78 @@
     }
   }
 
-  sidebarToggle.addEventListener("click", toggleSidebar);
-  sidebarBackdrop.addEventListener("click", closeSidebar);
+  if (sidebarToggle) {
+    sidebarToggle.addEventListener("click", toggleSidebar);
+  }
+  if (sidebarBackdrop) {
+    sidebarBackdrop.addEventListener("click", closeSidebar);
+  }
 
   document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && sidebar.classList.contains("is-open")) {
+    if (event.key === "Escape" && isMobileSidebar() && sidebar.classList.contains("is-open")) {
       closeSidebar();
       sidebarToggle.focus();
     }
   });
 
-  filterList.addEventListener("change", (event) => {
-    const input = event.target.closest(".app-toggle__input");
-    if (!input) return;
+  if (typeof mobileSidebarQuery.addEventListener === "function") {
+    mobileSidebarQuery.addEventListener("change", syncSidebarLayout);
+  } else if (typeof mobileSidebarQuery.addListener === "function") {
+    mobileSidebarQuery.addListener(syncSidebarLayout);
+  }
 
-    const slug = input.dataset.appSlug;
-    setToggleState(slug, input.checked);
-    const nextSelection = readSelectedFromDom();
-    updateFilterCount();
-    persistSelection(nextSelection);
+  syncSidebarLayout();
+
+  filterList.addEventListener("click", (event) => {
+    const muteBtn = event.target.closest(".app-filter-item__mute-btn");
+    if (!muteBtn) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    toggleMute(muteBtn.dataset.appSlug);
   });
 
-  selectAllBtn.addEventListener("click", () => {
-    if (allTogglesSelected()) {
-      deselectAllToggles();
-    } else {
-      selectAllToggles();
+  filterList.querySelectorAll(".app-filter-item__focus").forEach((focusArea) => {
+    const slug = focusArea.dataset.appSlug;
+
+    focusArea.addEventListener("mouseenter", () => {
+      if (!usesTapFocus()) {
+        setFocusedApp(slug);
+      }
+    });
+
+    focusArea.addEventListener("click", () => {
+      if (!usesTapFocus()) return;
+      setFocusedApp(focusedAppSlug === slug ? null : slug);
+    });
+
+    focusArea.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      setFocusedApp(focusedAppSlug === slug ? null : slug);
+    });
+  });
+
+  filterList.addEventListener("mouseleave", (event) => {
+    if (usesTapFocus()) return;
+    if (!event.relatedTarget || !filterList.contains(event.relatedTarget)) {
+      setFocusedApp(null);
     }
-    const nextSelection = readSelectedFromDom();
-    updateFilterCount();
-    persistSelection(nextSelection);
   });
+
+  document.addEventListener("click", (event) => {
+    if (!usesTapFocus() || !focusedAppSlug) return;
+    if (filterList.contains(event.target)) return;
+    setFocusedApp(null);
+  });
+
+  if (clearMutedBtn) {
+    clearMutedBtn.addEventListener("click", () => {
+      clearAllMutes();
+      updateFilterCount();
+      persistMutedApps([]);
+    });
+  }
 
   function applyTheme(theme) {
     document.documentElement.dataset.theme = theme;
@@ -174,15 +317,10 @@
   themeToggle.addEventListener("click", () => {
     const nextTheme = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
     applyTheme(nextTheme);
-    savePreferences(readSelectedFromDom(), nextTheme).catch((error) => {
+    savePreferences(readMutedFromDom(), nextTheme).catch((error) => {
       console.error(error);
     });
   });
-
-  if (!hasSelectionCookie()) {
-    selectAllToggles();
-    persistSelection(readSelectedFromDom());
-  }
 
   updateFilterCount();
 })();

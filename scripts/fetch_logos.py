@@ -64,6 +64,11 @@ SOURCES = {
         "filename": "mtgarena.png",
         "source_note": "Steam MTG Arena logo",
     },
+    "powertoys": {
+        "url": "https://raw.githubusercontent.com/microsoft/PowerToys/main/src/settings-ui/Settings.UI/Assets/Settings/icon.ico",
+        "filename": "powertoys.ico",
+        "source_note": "microsoft/PowerToys official settings icon",
+    },
 }
 
 

@@ -8,7 +8,7 @@ from fastapi.templating import Jinja2Templates
 
 from app.config import AppConfig
 from app.constants import APP_PREFIX, ROOT_DIR
-from app.date_utils import format_sync_time
+from app.date_utils import format_sync_time, update_freshness
 from app.highlight import highlight_mtg_terms
 from app.services.parsers.base import highlights_from_json
 
@@ -41,10 +41,11 @@ class FeedEntryView:
 @dataclass
 class PageContext:
     apps: list[AppConfig]
-    selected_apps: list[str]
+    muted_apps: list[str]
     entries: list[FeedEntryView]
     theme: str
     last_sync: datetime | None
+    app_last_updates: dict[str, datetime]
     sync_errors: dict[str, str]
     has_sync_data: bool = False
     is_loading: bool = False
@@ -81,7 +82,9 @@ def month_key(value: datetime) -> str:
 
 templates.env.filters["month_year"] = format_month_year
 templates.env.filters["month_key"] = month_key
+templates.env.filters["format_date"] = format_date
 templates.env.filters["sync_time"] = format_sync_time
+templates.env.filters["update_freshness"] = update_freshness
 templates.env.filters["mtg_terms"] = highlight_mtg_terms
 
 

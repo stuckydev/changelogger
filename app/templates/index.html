@@ -22,44 +22,73 @@
   <aside class="app-sidebar" id="app-sidebar" aria-label="Menu" aria-hidden="true">
     <div class="app-sidebar__header">
       <div class="app-sidebar__brand">
-        <span class="app-logo" aria-hidden="true">◉</span>
         <h1 class="app-title">Changelogger</h1>
       </div>
     </div>
 
     <div class="app-filter">
       <div class="app-filter__header">
-        <div class="app-filter__heading">
-          <h2>Apps</h2>
-          <span class="app-filter__count" id="app-filter-count" aria-hidden="true"></span>
-        </div>
-        <button type="button" class="text-button" id="select-all-apps">All</button>
+        <span class="app-filter__count" id="app-filter-count" aria-hidden="true"></span>
+        <button type="button" class="text-button" id="clear-muted-apps" hidden>Reset</button>
       </div>
-      <ul class="app-filter-list" id="app-filter-list" role="group" aria-label="App selection">
-        {% for app in page.apps %}
-        <li class="app-filter-item">
-          <input
-            type="checkbox"
-            id="app-toggle-{{ app.slug }}"
-            class="app-toggle__input"
-            data-app-slug="{{ app.slug }}"
-            {% if app.slug in page.selected_apps %}checked{% endif %}
-          >
-          <label class="app-filter-option" for="app-toggle-{{ app.slug }}">
-            <img
-              class="app-filter-item__logo"
-              src="{{ app.logo_src }}?v={{ static_asset_version }}"
-              alt=""
-              width="20"
-              height="20"
-              loading="lazy"
-              decoding="async"
-            >
-            <span class="app-filter-item__name">{{ app.name }}</span>
-            <span class="app-filter-item__check" aria-hidden="true"></span>
-          </label>
-        </li>
-        {% endfor %}
+      <ul class="app-filter-list" id="app-filter-list" role="group" aria-label="Apps">
+            {% for app in page.apps %}
+            <li class="app-filter-item" data-app-slug="{{ app.slug }}">
+              <input
+                type="checkbox"
+                id="app-toggle-{{ app.slug }}"
+                class="app-toggle__input visually-hidden"
+                data-app-slug="{{ app.slug }}"
+                {% if app.slug in page.muted_apps %}checked{% endif %}
+                tabindex="-1"
+                aria-hidden="true"
+              >
+              <div class="app-filter-option">
+                <div
+                  class="app-filter-item__focus"
+                  data-app-slug="{{ app.slug }}"
+                  role="button"
+                  tabindex="0"
+                  aria-label="Show only {{ app.name }}"
+                >
+                  <img
+                    class="app-filter-item__logo"
+                    src="{{ app.logo_src }}?v={{ static_asset_version }}"
+                    alt=""
+                    width="20"
+                    height="20"
+                    loading="lazy"
+                    decoding="async"
+                  >
+                  <span class="app-filter-item__label">
+                    <span class="app-filter-item__name">{{ app.name }}</span>
+                    <span class="app-filter-item__subline">
+                      <span class="app-filter-item__category">{{ app.category_label }}</span>
+                      {% set last_update = page.app_last_updates.get(app.slug) %}
+                      {% if last_update %}
+                      <time
+                        class="app-filter-item__date app-filter-item__date--{{ last_update | update_freshness }}"
+                        datetime="{{ last_update.isoformat() }}"
+                      >{{ last_update | format_date }}</time>
+                      {% endif %}
+                    </span>
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  class="app-filter-item__mute-btn"
+                  data-app-slug="{{ app.slug }}"
+                  aria-label="Mute {{ app.name }}"
+                  aria-pressed="{% if app.slug in page.muted_apps %}true{% else %}false{% endif %}"
+                >
+                  <svg class="app-filter-item__mute-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                  </svg>
+                </button>
+              </div>
+            </li>
+            {% endfor %}
       </ul>
     </div>
 
