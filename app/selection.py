@@ -12,16 +12,7 @@ def parse_selected_apps(raw: str | None) -> list[str]:
         return []
 
     known_set = set(known)
-    selected = [part.strip() for part in raw.split(",") if part.strip() in known_set]
-    if not selected:
-        return []
-
-    selected_set = set(selected)
-    for slug in known:
-        if slug not in selected_set:
-            selected.append(slug)
-
-    return selected
+    return [part.strip() for part in raw.split(",") if part.strip() in known_set]
 
 
 def should_persist_selection(raw: str | None, selected: list[str]) -> bool:

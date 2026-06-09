@@ -3,7 +3,6 @@ from pathlib import Path
 APP_PREFIX = "clg"
 COOKIE_SELECTED_APPS = f"{APP_PREFIX}_selected_apps"
 COOKIE_THEME = f"{APP_PREFIX}_theme"
-COOKIE_READ_ENTRIES = f"{APP_PREFIX}_read_entries"
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 CONFIG_PATH = ROOT_DIR / "config" / "apps.yaml"

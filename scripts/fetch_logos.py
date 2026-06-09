@@ -1,11 +1,15 @@
 """One-off helper to download official app logos into app/static/logos/."""
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
 import httpx
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
+
+from app.services.logo_thumbs import ensure_thumb
 LOGO_DIR = ROOT / "app" / "static" / "logos"
 HEADERS = {"User-Agent": "Changelogger/1.0 (+https://github.com/changelogger)"}
 
@@ -71,7 +75,12 @@ def main() -> None:
             response.raise_for_status()
             target = LOGO_DIR / meta["filename"]
             target.write_bytes(response.content)
-            print(f"OK {slug}: {len(response.content)} bytes -> {target.name} ({meta['source_note']})")
+            thumb = ensure_thumb(target, slug)
+            thumb_note = f", thumb {thumb.stat().st_size} bytes" if thumb else ""
+            print(
+                f"OK {slug}: {len(response.content)} bytes -> {target.name}{thumb_note} "
+                f"({meta['source_note']})"
+            )
 
 
 if __name__ == "__main__":

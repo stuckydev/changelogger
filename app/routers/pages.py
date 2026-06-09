@@ -7,24 +7,15 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session
 
-from app.config import load_apps
-from app.constants import COOKIE_READ_ENTRIES, COOKIE_SELECTED_APPS, COOKIE_THEME, DEFAULT_THEME
-from app.crud import latest_sync, list_entries
+from app.config import apps_by_slug, load_apps
+from app.constants import COOKIE_SELECTED_APPS, COOKIE_THEME, DEFAULT_THEME
+from app.cookies import cookie_kwargs
+from app.crud import count_entries, latest_sync, list_entries
 from app.db import get_db
-from app.read_state import parse_read_entries
 from app.routers.render import PageContext, build_feed_views, render_page
 from app.selection import parse_selected_apps, should_persist_selection
 
 router = APIRouter()
-
-
-def _cookie_kwargs(max_age: int = 60 * 60 * 24 * 365) -> dict:
-    return {
-        "max_age": max_age,
-        "httponly": False,
-        "samesite": "lax",
-        "path": "/",
-    }
 
 
 def _theme_from_cookie(raw: str | None) -> str:
@@ -35,20 +26,19 @@ def _theme_from_cookie(raw: str | None) -> str:
 
 def _build_context(db: Session, request: Request, *, is_loading: bool = False) -> PageContext:
     apps = list(load_apps())
-    apps_by_slug = {app.slug: app for app in apps}
     selected = parse_selected_apps(request.cookies.get(COOKIE_SELECTED_APPS))
-    read_entries = parse_read_entries(request.cookies.get(COOKIE_READ_ENTRIES))
-    entries = list_entries(db)
-    sync_errors = request.app.state.sync_errors if hasattr(request.app.state, "sync_errors") else {}
+    has_sync_data = count_entries(db) > 0
+    entries = list_entries(db, app_slugs=selected)
+    sync_errors = getattr(request.app.state, "sync_errors", {})
 
     return PageContext(
         apps=apps,
         selected_apps=selected,
-        read_entries=read_entries,
-        entries=build_feed_views(entries, apps_by_slug),
+        entries=build_feed_views(entries, apps_by_slug()),
         theme=_theme_from_cookie(request.cookies.get(COOKIE_THEME)),
         last_sync=latest_sync(db),
         sync_errors=sync_errors,
+        has_sync_data=has_sync_data,
         is_loading=is_loading,
     )
 
@@ -79,7 +69,7 @@ def index(request: Request, db: Annotated[Session, Depends(get_db)]):
         response.set_cookie(
             COOKIE_SELECTED_APPS,
             ",".join(ctx.selected_apps),
-            **_cookie_kwargs(),
+            **cookie_kwargs(),
         )
     return response
 

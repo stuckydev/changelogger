@@ -4,6 +4,34 @@ import httpx
 
 from app.config import AppConfig
 from app.constants import HIGHLIGHT_LIMIT, HTTP_TIMEOUT, USER_AGENT, ZENDESK_HIGHLIGHT_LIMIT
+
+_http_client: httpx.AsyncClient | None = None
+
+
+def _default_headers() -> dict[str, str]:
+    return {
+        "User-Agent": USER_AGENT,
+        "Accept": "text/html,application/xml,text/xml,*/*",
+        "Accept-Language": "en-US,en;q=0.9",
+    }
+
+
+async def get_http_client() -> httpx.AsyncClient:
+    global _http_client
+    if _http_client is None or _http_client.is_closed:
+        _http_client = httpx.AsyncClient(
+            timeout=HTTP_TIMEOUT,
+            follow_redirects=True,
+            headers=_default_headers(),
+        )
+    return _http_client
+
+
+async def close_http_client() -> None:
+    global _http_client
+    if _http_client is not None:
+        await _http_client.aclose()
+        _http_client = None
 from app.services.normalize import finalize_entry, pick_recent
 from app.services.parsers.base import ParsedEntry
 from app.services.parsers.capacities_html import parse_capacities_html
@@ -23,16 +51,11 @@ class FetchError(Exception):
 
 
 async def fetch_source(app: AppConfig) -> str:
-    headers = {
-        "User-Agent": USER_AGENT,
-        "Accept": "text/html,application/xml,text/xml,*/*",
-        "Accept-Language": "en-US,en;q=0.9",
-    }
-    async with httpx.AsyncClient(timeout=HTTP_TIMEOUT, follow_redirects=True, headers=headers) as client:
-        response = await client.get(app.source_url)
-        if response.status_code >= 400:
-            raise FetchError(app.slug, f"HTTP {response.status_code} for {app.source_url}")
-        return response.text
+    client = await get_http_client()
+    response = await client.get(app.source_url)
+    if response.status_code >= 400:
+        raise FetchError(app.slug, f"HTTP {response.status_code} for {app.source_url}")
+    return response.text
 
 
 def parse_recent(app: AppConfig, content: str) -> list[ParsedEntry]:

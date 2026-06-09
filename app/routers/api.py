@@ -7,11 +7,11 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from app.config import all_slugs, load_apps
-from app.constants import COOKIE_READ_ENTRIES, COOKIE_SELECTED_APPS, COOKIE_THEME
-from app.crud import list_entries
+from app.config import all_slugs, apps_by_slug
+from app.constants import COOKIE_SELECTED_APPS, COOKIE_THEME
+from app.cookies import cookie_kwargs
+from app.crud import count_entries, latest_sync, list_entries
 from app.db import get_db
-from app.read_state import normalize_read_entries, parse_read_entries, serialize_read_entries
 from app.routers.render import build_feed_views, render_page
 from app.selection import parse_selected_apps
 
@@ -21,32 +21,20 @@ router = APIRouter(prefix="/api")
 class PreferencesPayload(BaseModel):
     selected_apps: list[str] = Field(default_factory=list)
     theme: str | None = None
-    read_entries: list[str] | None = None
-
-
-def _cookie_kwargs(max_age: int = 60 * 60 * 24 * 365) -> dict:
-    return {
-        "max_age": max_age,
-        "httponly": False,
-        "samesite": "lax",
-        "path": "/",
-    }
 
 
 @router.get("/feed", response_class=HTMLResponse)
 def feed_partial(request: Request, db: Annotated[Session, Depends(get_db)]):
     selected = parse_selected_apps(request.cookies.get(COOKIE_SELECTED_APPS))
-    read_entries = parse_read_entries(request.cookies.get(COOKIE_READ_ENTRIES))
-    apps_by_slug = {app.slug: app for app in load_apps()}
-    entries = list_entries(db)
+    has_sync_data = count_entries(db) > 0
+    entries = list_entries(db, app_slugs=selected)
 
     return render_page(
         request,
         "partials/feed.html",
         {
-            "entries": build_feed_views(entries, apps_by_slug),
-            "selected_apps": selected,
-            "read_entries": read_entries,
+            "entries": build_feed_views(entries, apps_by_slug()),
+            "has_sync_data": has_sync_data,
         },
     )
 
@@ -59,27 +47,19 @@ def save_preferences(payload: PreferencesPayload, response: Response):
     response.set_cookie(
         COOKIE_SELECTED_APPS,
         ",".join(selected),
-        **_cookie_kwargs(),
+        **cookie_kwargs(),
     )
     if payload.theme in {"light", "dark"}:
-        response.set_cookie(COOKIE_THEME, payload.theme, **_cookie_kwargs())
-    if payload.read_entries is not None:
-        read_entries = normalize_read_entries(payload.read_entries)
-        response.set_cookie(
-            COOKIE_READ_ENTRIES,
-            serialize_read_entries(read_entries),
-            **_cookie_kwargs(),
-        )
+        response.set_cookie(COOKIE_THEME, payload.theme, **cookie_kwargs())
 
     return JSONResponse({"ok": True, "selected_apps": selected, "theme": payload.theme})
 
 
 @router.get("/status")
 def status(request: Request, db: Annotated[Session, Depends(get_db)]):
-    from app.crud import latest_sync
-
+    last_sync = latest_sync(db)
     return {
-        "last_sync": latest_sync(db).isoformat() if latest_sync(db) else None,
+        "last_sync": last_sync.isoformat() if last_sync else None,
         "sync_errors": getattr(request.app.state, "sync_errors", {}),
-        "entry_count": len(list_entries(db, limit=1000)),
+        "entry_count": count_entries(db),
     }

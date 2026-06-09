@@ -7,6 +7,7 @@ from typing import Literal
 import yaml
 
 from app.constants import CONFIG_PATH, ROOT_DIR
+from app.services.logo_thumbs import thumb_url_for_slug
 
 ParserType = Literal[
     "rss",
@@ -24,6 +25,21 @@ def github_releases_url(github_repo: str) -> str:
     return f"https://github.com/{github_repo.strip('/')}/releases.atom"
 
 
+def _resolve_logo_src(slug: str, logo_url: str | None) -> str:
+    if logo_url:
+        return logo_url
+    logo_dir = ROOT_DIR / "app" / "static" / "logos"
+    for extension in (".png", ".ico", ".webp", ".svg"):
+        path = logo_dir / f"{slug}{extension}"
+        if path.exists():
+            if extension != ".svg":
+                thumb = thumb_url_for_slug(slug)
+                if thumb:
+                    return thumb
+            return f"/static/logos/{slug}{extension}"
+    return f"/static/logos/{slug}.svg"
+
+
 @dataclass(frozen=True)
 class AppConfig:
     slug: str
@@ -31,6 +47,7 @@ class AppConfig:
     color: str
     source_url: str
     parser: ParserType
+    logo_src: str
     subtitle: str | None = None
     github_repo: str | None = None
     logo_url: str | None = None
@@ -41,16 +58,6 @@ class AppConfig:
         if self.subtitle:
             return f"{self.name} ({self.subtitle})"
         return self.name
-
-    @property
-    def logo_src(self) -> str:
-        if self.logo_url:
-            return self.logo_url
-        logo_dir = ROOT_DIR / "app" / "static" / "logos"
-        for extension in (".png", ".ico", ".webp", ".svg"):
-            if (logo_dir / f"{self.slug}{extension}").exists():
-                return f"/static/logos/{self.slug}{extension}"
-        return f"/static/logos/{self.slug}.svg"
 
 
 @lru_cache
@@ -69,13 +76,15 @@ def load_apps() -> tuple[AppConfig, ...]:
         elif not source_url:
             raise ValueError(f"App '{item['slug']}': source_url is required")
 
+        slug = item["slug"]
         apps.append(
             AppConfig(
-                slug=item["slug"],
+                slug=slug,
                 name=item["name"],
                 color=item.get("color", "#64748b"),
                 source_url=source_url,
                 parser=parser,
+                logo_src=_resolve_logo_src(slug, item.get("logo_url")),
                 subtitle=item.get("subtitle"),
                 github_repo=github_repo,
                 logo_url=item.get("logo_url"),
@@ -86,8 +95,13 @@ def load_apps() -> tuple[AppConfig, ...]:
     return tuple(apps)
 
 
+@lru_cache
+def apps_by_slug() -> dict[str, AppConfig]:
+    return {app.slug: app for app in load_apps()}
+
+
 def get_app(slug: str) -> AppConfig | None:
-    return next((app for app in load_apps() if app.slug == slug), None)
+    return apps_by_slug().get(slug)
 
 
 def all_slugs() -> list[str]:

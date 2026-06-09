@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 from datetime import datetime, timezone
 
@@ -42,10 +43,6 @@ def upsert_recent(db: Session, app: AppConfig, entries: list[ParsedEntry]) -> No
 
     db.flush()
 
-    for row in db.scalars(select(ChangelogEntry).where(ChangelogEntry.app_slug == app.slug)):
-        if row.id not in kept_ids:
-            db.delete(row)
-
     rows = list(
         db.scalars(
             select(ChangelogEntry)
@@ -53,28 +50,43 @@ def upsert_recent(db: Session, app: AppConfig, entries: list[ParsedEntry]) -> No
             .order_by(ChangelogEntry.published_at.desc())
         )
     )
-    for stale in rows[ENTRIES_PER_APP:]:
-        db.delete(stale)
+    kept_seen = 0
+    for row in rows:
+        if row.id not in kept_ids:
+            db.delete(row)
+            continue
+        kept_seen += 1
+        if kept_seen > ENTRIES_PER_APP:
+            db.delete(row)
 
     db.commit()
 
 
-async def sync_app(db: Session, app: AppConfig) -> str:
+async def _fetch_entries(app: AppConfig) -> tuple[AppConfig, list[ParsedEntry] | FetchError]:
     try:
         content = await fetch_source(app)
-        entries = parse_recent(app, content)
-        upsert_recent(db, app, entries)
-        return entries[0].title
+        return app, parse_recent(app, content)
+    except FetchError as exc:
+        return app, exc
     except Exception as exc:
         logger.exception("Sync failed for %s: %s", app.slug, exc)
-        raise FetchError(app.slug, str(exc)) from exc
+        return app, FetchError(app.slug, str(exc))
 
 
-async def sync_all(db: Session) -> dict[str, str]:
-    results: dict[str, str] = {}
-    for app in load_apps():
+async def sync_all(db: Session) -> dict[str, str | None]:
+    """Return slug -> error message; None means success."""
+    outcomes = await asyncio.gather(*[_fetch_entries(app) for app in load_apps()])
+
+    results: dict[str, str | None] = {}
+    for app, outcome in outcomes:
+        if isinstance(outcome, FetchError):
+            results[app.slug] = str(outcome)
+            continue
         try:
-            results[app.slug] = await sync_app(db, app)
-        except FetchError as exc:
+            upsert_recent(db, app, outcome)
+            results[app.slug] = None
+            logger.info("Synced %s: %s", app.slug, outcome[0].title)
+        except Exception as exc:
+            logger.exception("Upsert failed for %s: %s", app.slug, exc)
             results[app.slug] = str(exc)
     return results

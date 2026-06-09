@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from app.constants import ENTRIES_PER_APP
+from app.constants import ENTRIES_PER_APP, HIGHLIGHT_LIMIT
 from app.services.parsers.base import ParsedEntry
 from app.services.summarize import normalize_highlights
 

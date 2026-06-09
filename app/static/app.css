@@ -747,9 +747,9 @@ html[data-theme="light"] .theme-icon--light {
 
 .app-filter-item__logo {
 
-  width: 1.5rem;
+  width: 1.25rem;
 
-  height: 1.5rem;
+  height: 1.25rem;
 
   object-fit: contain;
 
@@ -1065,121 +1065,7 @@ html[data-theme="light"] .theme-icon--light {
 
   margin-bottom: var(--space-2);
 
-  padding-left: 1.125rem;
-
   position: relative;
-
-}
-
-
-
-.feed-card__read-toggle {
-
-  position: absolute;
-
-  left: 0;
-
-  top: 0.2rem;
-
-  width: 1rem;
-
-  height: 1rem;
-
-  padding: 0;
-
-  border: 0;
-
-  border-radius: 999px;
-
-  background: transparent;
-
-  color: var(--muted);
-
-  cursor: pointer;
-
-  display: grid;
-
-  place-items: center;
-
-  transition: color 0.15s ease;
-
-}
-
-
-
-.feed-card__read-toggle:hover {
-
-  color: var(--accent);
-
-}
-
-
-
-.feed-card__read-toggle:focus-visible {
-
-  outline: 2px solid var(--accent);
-
-  outline-offset: 2px;
-
-}
-
-
-
-.feed-card__read-indicator {
-
-  display: block;
-
-  width: 0.4375rem;
-
-  height: 0.4375rem;
-
-  border-radius: 999px;
-
-  background: var(--accent);
-
-  box-shadow: 0 0 0 2px var(--accent-soft);
-
-}
-
-
-
-.feed-card.is-read .feed-card__read-indicator {
-
-  width: 0.625rem;
-
-  height: 0.625rem;
-
-  background: transparent;
-
-  box-shadow: none;
-
-  border: 1.5px solid color-mix(in srgb, var(--muted) 55%, transparent);
-
-  position: relative;
-
-}
-
-
-
-.feed-card.is-read .feed-card__read-indicator::after {
-
-  content: "";
-
-  position: absolute;
-
-  left: 0.11rem;
-
-  top: 0.02rem;
-
-  width: 0.22rem;
-
-  height: 0.36rem;
-
-  border: solid color-mix(in srgb, var(--muted) 70%, transparent);
-
-  border-width: 0 1.5px 1.5px 0;
-
-  transform: rotate(45deg);
 
 }
 
@@ -1203,9 +1089,9 @@ html[data-theme="light"] .theme-icon--light {
 
 .feed-card__logo {
 
-  width: 1.5rem;
+  width: 1.25rem;
 
-  height: 1.5rem;
+  height: 1.25rem;
 
   object-fit: contain;
 

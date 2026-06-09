@@ -1,5 +1,4 @@
 {% if entries %}
-{% set read_entries = read_entries|default([]) %}
 <ol class="feed-list" id="feed-list">
   {% set ns = namespace(current_month=none) %}
   {% for entry in entries %}
@@ -10,24 +9,16 @@
     <span class="feed-month-divider__label">{{ entry.published_at | month_year }}</span>
   </li>
   {% endif %}
-  <li class="feed-card{% if entry.app_slug not in selected_apps %} is-hidden{% endif %}{% if entry.id in read_entries %} is-read{% endif %}" data-entry-id="{{ entry.id }}" data-app-slug="{{ entry.app_slug }}" data-month="{{ entry_month }}">
+  <li class="feed-card" data-entry-id="{{ entry.id }}" data-app-slug="{{ entry.app_slug }}" data-month="{{ entry_month }}">
     <article class="feed-card__inner">
       <header class="feed-card__header">
-        <button
-          type="button"
-          class="feed-card__read-toggle"
-          aria-label="{% if entry.id in read_entries %}Als ungelesen markieren{% else %}Als gelesen markieren{% endif %}"
-          aria-pressed="{% if entry.id in read_entries %}true{% else %}false{% endif %}"
-        >
-          <span class="feed-card__read-indicator" aria-hidden="true"></span>
-        </button>
         <div class="feed-card__app">
           <img
             class="feed-card__logo"
             src="{{ entry.app_logo_src }}?v={{ static_asset_version }}"
             alt=""
-            width="24"
-            height="24"
+            width="20"
+            height="20"
             loading="lazy"
             decoding="async"
           >
@@ -61,12 +52,12 @@
 </ol>
 {% endif %}
 
-<div id="feed-empty-filtered" class="empty-state{% if entries and selected_apps %} is-hidden{% endif %}" role="status">
+<div id="feed-empty-filtered" class="empty-state{% if entries or not has_sync_data %} is-hidden{% endif %}" role="status">
   <p class="empty-state__title">No visible entries</p>
   <p class="empty-state__text">Open the menu and select at least one app to see updates in the feed.</p>
 </div>
 
-<div id="feed-empty-sync" class="empty-state{% if entries %} is-hidden{% endif %}" role="status">
+<div id="feed-empty-sync" class="empty-state{% if has_sync_data %} is-hidden{% endif %}" role="status">
   <p class="empty-state__title">No changelog data yet</p>
   <p class="empty-state__text">The first sync runs on startup — wait a moment and refresh the page.</p>
 </div>

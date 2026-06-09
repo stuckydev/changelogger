@@ -5,10 +5,8 @@ __pycache__/
 .venv/
 venv/
 
-# Daten
-data/*.db
-data/*.db-*
-data/*.bak
+# Daten (nur SQLite-Volume)
+data/*
 !data/.gitkeep
 
 # Env

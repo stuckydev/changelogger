@@ -42,11 +42,11 @@ class FeedEntryView:
 class PageContext:
     apps: list[AppConfig]
     selected_apps: list[str]
-    read_entries: set[str]
     entries: list[FeedEntryView]
     theme: str
     last_sync: datetime | None
     sync_errors: dict[str, str]
+    has_sync_data: bool = False
     is_loading: bool = False
 
 
