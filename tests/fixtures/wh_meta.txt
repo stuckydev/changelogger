@@ -1,7 +1,0 @@
-﻿match True len 16429
-lastUpdateDateUtc : 2026-06-05T11:00:53Z
-notes : ['ò Include "hourly rate adjustment" tags when exporting to a SubTotal invoice\r\nò Fixed wrong name when duplicating task\r\nò Reworked Excel Export:\r\n  ò title & total line are now in bold\r\n  ò faster export, smaller xlsx file\r\n  ò duration is now exported as plain text to ensure correct dis
-packageLastUpdateDateUtc : 2026-06-05T11:00:53Z
-releaseDateUtc : 2017-01-04T18:23:43.8125069Z
-version : 
-all keys sample ['shortTitle', 'shortDescription', 'categoryId', 'categoryIds', 'subcategoryName', 'approximateSizeInBytes', 'capabilities', 'developerName', 'durationInSeconds', 'hasAddOns', 'hasThirdPartyIAPs', 'language', 'maxInstallSizeInBytes', 'mediaType', 'publisherId', 'ratingCount', 'additionalLicenseTerms', 'appWebsiteUrl', 'features', 'gamingOptionsXboxLive', 'installationTerms', 'isMicrosoftProduct', 'isMsixvc', 'lastUpdateDateUtc', 'notes', 'permissionsRequired', 'platforms', 'privacyUrl', 'productRatings', 'publisherCopyrightInformation']

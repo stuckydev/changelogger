@@ -7,29 +7,28 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
-from app.constants import REFRESH_INTERVAL_SECONDS, ROOT_DIR
-from app.db import SessionLocal, engine
-from app.migrations import run_migrations
-from app.routers import api, pages
-from app.services.fetch import close_http_client
-from app.services.logo_thumbs import ensure_logo_thumbs
+from app.core.constants import REFRESH_INTERVAL_SECONDS, ROOT_DIR
+from app.core.db import SessionLocal, engine
+from app.core.migrations import run_migrations
+from app.infra.http import close_http_client
+from app.infra.logos import ensure_logo_thumbs
 from app.services.sync import sync_all
+from app.web.routes import api, health, pages
 
 logger = logging.getLogger(__name__)
 
 
-def _sync_errors(results: dict[str, str | None]) -> dict[str, str]:
-    return {slug: message for slug, message in results.items() if message}
-
-
-async def _run_sync_loop(app: FastAPI) -> None:
+async def _run_sync_loop() -> None:
     while True:
         await asyncio.sleep(REFRESH_INTERVAL_SECONDS)
         db = SessionLocal()
         try:
             results = await sync_all(db)
-            app.state.sync_errors = _sync_errors(results)
-            logger.info("Background sync finished: %d ok, %d failed", sum(v is None for v in results.values()), len(app.state.sync_errors))
+            logger.info(
+                "Background sync finished: %d ok, %d failed",
+                sum(v is None for v in results.values()),
+                sum(v is not None for v in results.values()),
+            )
         except Exception:
             logger.exception("Background sync failed")
         finally:
@@ -37,19 +36,21 @@ async def _run_sync_loop(app: FastAPI) -> None:
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(_app: FastAPI):
     run_migrations(engine)
     ensure_logo_thumbs()
-    app.state.sync_errors = {}
     db = SessionLocal()
     try:
         results = await sync_all(db)
-        app.state.sync_errors = _sync_errors(results)
-        logger.info("Initial sync finished: %d ok, %d failed", sum(v is None for v in results.values()), len(app.state.sync_errors))
+        logger.info(
+            "Initial sync finished: %d ok, %d failed",
+            sum(v is None for v in results.values()),
+            sum(v is not None for v in results.values()),
+        )
     finally:
         db.close()
 
-    sync_task = asyncio.create_task(_run_sync_loop(app))
+    sync_task = asyncio.create_task(_run_sync_loop())
     try:
         yield
     finally:
@@ -67,6 +68,7 @@ def create_app() -> FastAPI:
     app = FastAPI(title="Changelogger", lifespan=lifespan)
     static_dir = ROOT_DIR / "app" / "static"
     app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+    app.include_router(health.router)
     app.include_router(pages.router)
     app.include_router(api.router)
     return app

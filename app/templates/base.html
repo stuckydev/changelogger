@@ -23,7 +23,6 @@
 </head>
 <body>
   {% block body %}{% endblock %}
-  <script type="application/json" id="apps-config">{{ apps_json | safe }}</script>
   <script src="/static/app.js?v={{ static_asset_version }}" defer></script>
 </body>
 </html>

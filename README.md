@@ -14,10 +14,10 @@ A lightweight web app that aggregates public changelogs for selected software pr
 
 ## Features
 
-- App chips for filtering (preference stored in cookies)
-- Compact feed with summaries, category badges, and a “more…” link
+- Sidebar app list with mute + temporary focus filter
+- Compact feed with summaries and a “more…” link
 - Dark mode (default) + light mode
-- Mobile-first layout with horizontally scrollable chips
+- Mobile drawer sidebar, desktop persistent sidebar
 - Server-side fetch/parse layer (no browser CORS issues)
 - Background sync every 6 hours
 - Two most recent changelog entries per app, shown as a uniform bullet list
@@ -73,17 +73,23 @@ Restart the container or reload the app — the server syncs all sources on star
 
 ```text
 app/
-  main.py                 FastAPI, startup sync, static mount
-  config.py               loads config/apps.yaml
-  constants.py            cookie names, paths
-  models.py / crud.py     SQLite cache
-  routers/                HTML + JSON API
-  services/               fetch, parse, sync
-  templates/              SSR + feed partial
-  static/                 CSS, JS, favicon, logos
-config/apps.yaml          app sources (manual)
-data/                     SQLite volume
-docker/                   Dockerfile, compose, entrypoint
+  main.py                     FastAPI app, lifespan sync, static mount
+  core/                       config, constants, db, models, migrations, dates
+  domain/                     changelog types/rules, user preferences
+  infra/                      HTTP client, logo thumbnails
+  repositories/               SQLite access
+  parsers/                    source-specific parsers
+  services/                   ingest, sync, summarize, release enrichment
+  web/
+    routes/                   pages, API, health
+    render.py                 Jinja setup + feed view models
+    highlight.py              MTG Arena term highlighting
+  templates/                  SSR + feed partial
+  static/                     CSS, JS, favicon, logos
+config/apps.yaml              app sources
+data/                         SQLite volume
+docker/                       Dockerfile, compose, entrypoint
+scripts/fetch_logos.py        refresh logos from official sources
 ```
 
 ## Logos
@@ -96,39 +102,8 @@ Refresh from official sources:
 python scripts/fetch_logos.py
 ```
 
-| App | Source |
-|---|---|
-| Todoist | [todoist.com apple-touch-icon](https://www.todoist.com/static/apple-touch-icon.png) |
-| 1Password | [1password.com apple-touch-icon](https://1password.com/apple-touch-icon.png) |
-| Notion | [notion.com logo-ios](https://www.notion.com/front-static/logo-ios.png) |
-| Actual Budget | [actualbudget/actual favicon](https://github.com/actualbudget/actual) |
-| WinUtil | [ChrisTitusTech GitHub avatar](https://github.com/ChrisTitusTech) |
-
-| Capacities | [capacities.io favicon](https://capacities.io/favicon.ico) |
-
 Override per app in `config/apps.yaml` with `logo_url:` if needed.
 
 ## Tracked apps
 
-- Todoist — HTML changelog (Help Center)
-- 1Password (Windows) — RSS (`stable/index.xml`)
-- Notion — HTML releases page
-- Actual Budget — GitHub Releases (`actualbudget/actual`)
-- WinUtil — GitHub Releases (`ChrisTitusTech/winutil`)
-- Capacities — [What's New](https://capacities.io/whats-new/)
-
-## Roadmap
-
-- [x] Initial scaffold with 5 apps
-- [x] Docker deployment
-- [ ] Parsers for more formats
-- [ ] Manual sync trigger (`POST /api/sync`)
-
-## Deviations from APP_BLUEPRINT.md
-
-Intentionally simplified:
-
-- No PRG/flash, no soft-nav (single-page read app)
-- No migrations/seed tables for user data
-- English-only UI (no i18n layer)
-- SQLite used only as changelog cache, not as a user DB
+Configured in `config/apps.yaml` (currently 11 apps across SaaS, self-hosted, games, and utilities).

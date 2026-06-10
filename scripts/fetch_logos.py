@@ -9,7 +9,7 @@ import httpx
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from app.services.logo_thumbs import ensure_thumb
+from app.infra.logos import ensure_thumb
 LOGO_DIR = ROOT / "app" / "static" / "logos"
 HEADERS = {"User-Agent": "Changelogger/1.0 (+https://github.com/changelogger)"}
 

@@ -1,9 +1,0 @@
-﻿{
-  "shortTitle": "WorkingHours",
-  "lastUpdateDateUtc": "2026-06-05T11:00:53Z",
-  "notes": [
-    "\u2022 Include \"hourly rate adjustment\" tags when exporting to a SubTotal invoice\r\n\u2022 Fixed wrong name when duplicating task\r\n\u2022 Reworked Excel Export:\r\n  \u2022 title & total line are now in bold\r\n  \u2022 faster export, smaller xlsx file\r\n  \u2022 duration is now exported as plain text to ensure correct display in third party viewers like \"Numbers\""
-  ],
-  "version": "",
-  "productId": "9mv51b301wfd"
-}

@@ -7,11 +7,11 @@ from datetime import datetime, timezone
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.config import AppConfig, load_apps
-from app.constants import ENTRIES_PER_APP
-from app.models import ChangelogEntry
-from app.services.fetch import FetchError, fetch_source, parse_recent
-from app.services.parsers.base import ParsedEntry, highlights_to_json, make_entry_id
+from app.core.config import AppConfig, load_apps
+from app.core.constants import ENTRIES_PER_APP
+from app.core.models import ChangelogEntry
+from app.domain.changelog import ParsedEntry, highlights_to_json, make_entry_id
+from app.services.ingest import FetchError, fetch_source, parse_recent
 
 logger = logging.getLogger(__name__)
 

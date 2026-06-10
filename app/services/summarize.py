@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 
-from app.constants import HIGHLIGHT_LIMIT, HIGHLIGHT_MAX_CHARS
+from app.core.constants import HIGHLIGHT_LIMIT, HIGHLIGHT_MAX_CHARS
 
 CATEGORY_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     ("Fix", re.compile(r"\b(fixed|fix|bug|resolved)\b|🐛", re.I)),

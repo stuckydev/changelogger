@@ -1,3 +1,0 @@
-﻿winget yaml 404 
-catalog bigIds=49297T.Partl.ClockOut&market=DE&languages=de-DE&alter 400
-catalog bigIds=9MV51B301WFD&market=DE&languages=de-DE 400

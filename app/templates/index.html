@@ -24,13 +24,20 @@
       <div class="app-sidebar__brand">
         <h1 class="app-title">Changelogger</h1>
       </div>
+      <button
+        type="button"
+        class="sidebar-close"
+        id="sidebar-close"
+        aria-label="Close menu"
+        hidden
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <path d="M18 6 6 18M6 6l12 12" />
+        </svg>
+      </button>
     </div>
 
     <div class="app-filter">
-      <div class="app-filter__header">
-        <span class="app-filter__count" id="app-filter-count" aria-hidden="true"></span>
-        <button type="button" class="text-button" id="clear-muted-apps" hidden>Reset</button>
-      </div>
       <ul class="app-filter-list" id="app-filter-list" role="group" aria-label="Apps">
             {% for app in page.apps %}
             <li class="app-filter-item" data-app-slug="{{ app.slug }}">
@@ -64,16 +71,16 @@
                     <span class="app-filter-item__name">{{ app.name }}</span>
                     <span class="app-filter-item__subline">
                       <span class="app-filter-item__category">{{ app.category_label }}</span>
-                      {% set last_update = page.app_last_updates.get(app.slug) %}
-                      {% if last_update %}
-                      <time
-                        class="app-filter-item__date app-filter-item__date--{{ last_update | update_freshness }}"
-                        datetime="{{ last_update.isoformat() }}"
-                      >{{ last_update | format_date }}</time>
-                      {% endif %}
                     </span>
                   </span>
                 </div>
+                {% set last_update = page.app_last_updates.get(app.slug) %}
+                {% if last_update %}
+                <time
+                  class="app-filter-item__date app-filter-item__date--{{ last_update | update_freshness }}"
+                  datetime="{{ last_update.isoformat() }}"
+                >{{ last_update | format_date }}</time>
+                {% endif %}
                 <button
                   type="button"
                   class="app-filter-item__mute-btn"

@@ -6,11 +6,10 @@
 
   const filterList = document.getElementById("app-filter-list");
   const feedRoot = document.getElementById("feed-root");
-  const clearMutedBtn = document.getElementById("clear-muted-apps");
-  const filterCount = document.getElementById("app-filter-count");
   const themeToggle = document.getElementById("theme-toggle");
   const sidebar = document.getElementById("app-sidebar");
   const sidebarToggle = document.getElementById("sidebar-toggle");
+  const sidebarClose = document.getElementById("sidebar-close");
   const sidebarBackdrop = document.getElementById("sidebar-backdrop");
   const mobileSidebarQuery = window.matchMedia("(max-width: 47.99rem)");
   const coarsePointerQuery = window.matchMedia("(hover: none), (pointer: coarse)");
@@ -29,33 +28,6 @@
     return Array.from(filterList.querySelectorAll(".app-toggle__input:checked")).map(
       (input) => input.dataset.appSlug
     );
-  }
-
-  function updateFilterCount() {
-    if (!filterCount || !filterList) return;
-    const inputs = filterList.querySelectorAll(".app-toggle__input");
-    const muted = filterList.querySelectorAll(".app-toggle__input:checked");
-    const mutedCount = muted.length;
-
-    if (mutedCount === 0) {
-      filterCount.textContent = "";
-      filterCount.hidden = true;
-      if (clearMutedBtn) clearMutedBtn.hidden = true;
-      return;
-    }
-
-    filterCount.hidden = false;
-    filterCount.textContent = `${mutedCount}/${inputs.length}`;
-    if (clearMutedBtn) clearMutedBtn.hidden = false;
-  }
-
-  function clearAllMutes() {
-    filterList.querySelectorAll(".app-toggle__input").forEach((input) => {
-      input.checked = false;
-    });
-    filterList.querySelectorAll(".app-filter-item__mute-btn").forEach((btn) => {
-      btn.setAttribute("aria-pressed", "false");
-    });
   }
 
   function savePreferences(mutedApps, theme) {
@@ -168,7 +140,6 @@
     }
 
     const nextMuted = readMutedFromDom();
-    updateFilterCount();
     persistMutedApps(nextMuted);
   }
 
@@ -179,14 +150,14 @@
       const isOpen = sidebar.classList.contains("is-open");
       sidebar.setAttribute("aria-hidden", isOpen ? "false" : "true");
       sidebarToggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
-      sidebarToggle.setAttribute("aria-label", isOpen ? "Close menu" : "Open menu");
+      if (sidebarClose) sidebarClose.hidden = !isOpen;
       return;
     }
 
     sidebar.classList.remove("is-open");
     sidebar.setAttribute("aria-hidden", "false");
     sidebarToggle.setAttribute("aria-expanded", "false");
-    sidebarToggle.setAttribute("aria-label", "Open menu");
+    if (sidebarClose) sidebarClose.hidden = true;
     if (sidebarBackdrop) {
       sidebarBackdrop.classList.remove("is-visible");
       sidebarBackdrop.hidden = true;
@@ -199,7 +170,7 @@
     sidebar.classList.add("is-open");
     sidebar.setAttribute("aria-hidden", "false");
     sidebarToggle.setAttribute("aria-expanded", "true");
-    sidebarToggle.setAttribute("aria-label", "Close menu");
+    if (sidebarClose) sidebarClose.hidden = false;
     sidebarBackdrop.hidden = false;
     requestAnimationFrame(() => {
       sidebarBackdrop.classList.add("is-visible");
@@ -212,7 +183,7 @@
     sidebar.classList.remove("is-open");
     sidebar.setAttribute("aria-hidden", "true");
     sidebarToggle.setAttribute("aria-expanded", "false");
-    sidebarToggle.setAttribute("aria-label", "Open menu");
+    if (sidebarClose) sidebarClose.hidden = true;
     sidebarBackdrop.classList.remove("is-visible");
     document.body.classList.remove("sidebar-open");
     sidebarBackdrop.addEventListener(
@@ -237,6 +208,9 @@
 
   if (sidebarToggle) {
     sidebarToggle.addEventListener("click", toggleSidebar);
+  }
+  if (sidebarClose) {
+    sidebarClose.addEventListener("click", closeSidebar);
   }
   if (sidebarBackdrop) {
     sidebarBackdrop.addEventListener("click", closeSidebar);
@@ -300,14 +274,6 @@
     setFocusedApp(null);
   });
 
-  if (clearMutedBtn) {
-    clearMutedBtn.addEventListener("click", () => {
-      clearAllMutes();
-      updateFilterCount();
-      persistMutedApps([]);
-    });
-  }
-
   function applyTheme(theme) {
     document.documentElement.dataset.theme = theme;
     localStorage.setItem(THEME_KEY, theme);
@@ -322,5 +288,4 @@
     });
   });
 
-  updateFilterCount();
 })();
