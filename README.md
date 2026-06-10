@@ -15,12 +15,13 @@ A lightweight web app that aggregates public changelogs for selected software pr
 ## Features
 
 - Sidebar app list with mute + temporary focus filter
-- Compact feed with summaries and a “more…” link
+- Compact feed with bullet highlights and a „mehr…" link
 - Dark mode (default) + light mode
 - Mobile drawer sidebar, desktop persistent sidebar
+- Sync error indicator per app in the sidebar
 - Server-side fetch/parse layer (no browser CORS issues)
 - Background sync every 6 hours
-- Two most recent changelog entries per app, shown as a uniform bullet list
+- Two most recent changelog entries per app
 
 ## Quick start (local)
 
@@ -55,17 +56,17 @@ Entry in `config/apps.yaml`:
 ```yaml
   - slug: my-app
     name: My App
-    color: "#64748b"
     source_url: https://example.com/changelog
-    parser: rss          # rss | todoist_html | notion_html | github_releases | capacities_html
+    parser: rss
 
   # GitHub Releases (Atom feed):
   - slug: my-project
     name: My Project
-    color: "#64748b"
     github_repo: owner/repo
     parser: github_releases
 ```
+
+Parser types: `rss`, `todoist_html`, `notion_html`, `github_releases`, `capacities_html`, `cursor_html`, `microsoft_store_html`, `zendesk_articles`.
 
 Restart the container or reload the app — the server syncs all sources on startup.
 
@@ -73,17 +74,17 @@ Restart the container or reload the app — the server syncs all sources on star
 
 ```text
 app/
-  main.py                     FastAPI app, lifespan sync, static mount
-  core/                       config, constants, db, models, migrations, dates
-  domain/                     changelog types/rules, user preferences
+  bootstrap.py                FastAPI factory, lifespan, sync loop
+  main.py                     Uvicorn entry (re-exports bootstrap.app)
+  settings.py                 paths, cookies, sync limits
+  catalog/                    apps.yaml loader (AppConfig)
+  models/                     shared domain types (ParsedEntry)
+  storage/                    SQLite db, ORM, migrations, repositories
+  ingestion/                  fetch, parse, normalize, sync, parsers
+  presentation/               routes, view models, Jinja, feed context
+  user_prefs/                 cookie-based mute + theme prefs
   infra/                      HTTP client, logo thumbnails
-  repositories/               SQLite access
-  parsers/                    source-specific parsers
-  services/                   ingest, sync, summarize, release enrichment
-  web/
-    routes/                   pages, API, health
-    render.py                 Jinja setup + feed view models
-    highlight.py              MTG Arena term highlighting
+  utils/                      date parsing and display helpers
   templates/                  SSR + feed partial
   static/                     CSS, JS, favicon, logos
 config/apps.yaml              app sources

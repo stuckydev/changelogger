@@ -2,17 +2,17 @@
   const APP_PREFIX = "clg";
   const COOKIE_MUTED = `${APP_PREFIX}_muted_apps`;
   const COOKIE_THEME = `${APP_PREFIX}_theme`;
-  const THEME_KEY = `${APP_PREFIX}-theme`;
+  const SIDEBAR_POLL_MS = 60_000;
 
   const filterList = document.getElementById("app-filter-list");
   const feedRoot = document.getElementById("feed-root");
+  const sidebarSyncStatus = document.getElementById("sidebar-sync-status");
   const themeToggle = document.getElementById("theme-toggle");
   const sidebar = document.getElementById("app-sidebar");
   const sidebarToggle = document.getElementById("sidebar-toggle");
   const sidebarClose = document.getElementById("sidebar-close");
   const sidebarBackdrop = document.getElementById("sidebar-backdrop");
   const mobileSidebarQuery = window.matchMedia("(max-width: 47.99rem)");
-  const coarsePointerQuery = window.matchMedia("(hover: none), (pointer: coarse)");
 
   let focusedAppSlug = null;
 
@@ -20,14 +20,14 @@
     return mobileSidebarQuery.matches;
   }
 
-  function usesTapFocus() {
-    return coarsePointerQuery.matches;
+  function readMutedFromDom() {
+    return Array.from(filterList.querySelectorAll(".app-filter-item.is-muted")).map(
+      (item) => item.dataset.appSlug
+    );
   }
 
-  function readMutedFromDom() {
-    return Array.from(filterList.querySelectorAll(".app-toggle__input:checked")).map(
-      (input) => input.dataset.appSlug
-    );
+  function readTheme() {
+    return document.documentElement.dataset.theme === "light" ? "light" : "dark";
   }
 
   function savePreferences(mutedApps, theme) {
@@ -38,9 +38,30 @@
       body: JSON.stringify(payload),
     }).then((response) => {
       if (!response.ok) {
-        throw new Error("Could not save preferences.");
+        throw new Error("Einstellungen konnten nicht gespeichert werden.");
       }
     });
+  }
+
+  function refreshSidebar() {
+    if (!filterList) return Promise.resolve();
+    return fetch("/api/sidebar")
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Sidebar konnte nicht aktualisiert werden.");
+        }
+        return response.json();
+      })
+      .then((data) => {
+        filterList.innerHTML = data.apps_html;
+        if (sidebarSyncStatus) {
+          sidebarSyncStatus.innerHTML = data.sync_html;
+        }
+        setFocusedApp(focusedAppSlug);
+      })
+      .catch((error) => {
+        console.error(error);
+      });
   }
 
   function refreshFeed() {
@@ -49,7 +70,7 @@
     return fetch("/api/feed")
       .then((response) => {
         if (!response.ok) {
-          throw new Error("Could not refresh feed.");
+          throw new Error("Feed konnte nicht aktualisiert werden.");
         }
         return response.text();
       })
@@ -66,8 +87,8 @@
   }
 
   function persistMutedApps(mutedApps) {
-    return savePreferences(mutedApps, document.documentElement.dataset.theme)
-      .then(() => refreshFeed())
+    return savePreferences(mutedApps, readTheme())
+      .then(() => Promise.all([refreshFeed(), refreshSidebar()]))
       .catch((error) => {
         console.error(error);
       });
@@ -124,23 +145,26 @@
 
     filterList.classList.toggle("is-focusing", Boolean(focusedAppSlug));
     filterList.querySelectorAll(".app-filter-item").forEach((item) => {
-      item.classList.toggle("is-focused", item.dataset.appSlug === focusedAppSlug);
+      const isFocused = item.dataset.appSlug === focusedAppSlug;
+      item.classList.toggle("is-focused", isFocused);
+      const focusArea = item.querySelector(".app-filter-item__focus");
+      if (focusArea) {
+        focusArea.setAttribute("aria-pressed", isFocused ? "true" : "false");
+      }
     });
     applyFeedFocus();
   }
 
   function toggleMute(slug) {
-    const input = filterList.querySelector(`.app-toggle__input[data-app-slug="${slug}"]`);
+    const item = filterList.querySelector(`.app-filter-item[data-app-slug="${slug}"]`);
     const muteBtn = filterList.querySelector(`.app-filter-item__mute-btn[data-app-slug="${slug}"]`);
-    if (!input) return;
+    if (!item || !muteBtn) return;
 
-    input.checked = !input.checked;
-    if (muteBtn) {
-      muteBtn.setAttribute("aria-pressed", input.checked ? "true" : "false");
-    }
+    const nextMuted = !item.classList.contains("is-muted");
+    item.classList.toggle("is-muted", nextMuted);
+    muteBtn.setAttribute("aria-pressed", nextMuted ? "true" : "false");
 
-    const nextMuted = readMutedFromDom();
-    persistMutedApps(nextMuted);
+    persistMutedApps(readMutedFromDom());
   }
 
   function syncSidebarLayout() {
@@ -206,6 +230,11 @@
     }
   }
 
+  function applyTheme(theme) {
+    document.documentElement.dataset.theme = theme;
+    document.cookie = `${COOKIE_THEME}=${theme};path=/;max-age=31536000;SameSite=Lax`;
+  }
+
   if (sidebarToggle) {
     sidebarToggle.addEventListener("click", toggleSidebar);
   }
@@ -231,61 +260,57 @@
 
   syncSidebarLayout();
 
-  filterList.addEventListener("click", (event) => {
-    const muteBtn = event.target.closest(".app-filter-item__mute-btn");
-    if (!muteBtn) return;
-
-    event.preventDefault();
-    event.stopPropagation();
-    toggleMute(muteBtn.dataset.appSlug);
-  });
-
-  filterList.querySelectorAll(".app-filter-item__focus").forEach((focusArea) => {
-    const slug = focusArea.dataset.appSlug;
-
-    focusArea.addEventListener("mouseenter", () => {
-      if (!usesTapFocus()) {
-        setFocusedApp(slug);
-      }
-    });
-
-    focusArea.addEventListener("click", () => {
-      if (!usesTapFocus()) return;
-      setFocusedApp(focusedAppSlug === slug ? null : slug);
-    });
-
-    focusArea.addEventListener("keydown", (event) => {
-      if (event.key !== "Enter" && event.key !== " ") return;
-      event.preventDefault();
-      setFocusedApp(focusedAppSlug === slug ? null : slug);
-    });
-  });
-
-  filterList.addEventListener("mouseleave", (event) => {
-    if (usesTapFocus()) return;
-    if (!event.relatedTarget || !filterList.contains(event.relatedTarget)) {
-      setFocusedApp(null);
+  function toggleAppFilter(slug) {
+    setFocusedApp(focusedAppSlug === slug ? null : slug);
+    if (isMobileSidebar()) {
+      closeSidebar();
     }
-  });
-
-  document.addEventListener("click", (event) => {
-    if (!usesTapFocus() || !focusedAppSlug) return;
-    if (filterList.contains(event.target)) return;
-    setFocusedApp(null);
-  });
-
-  function applyTheme(theme) {
-    document.documentElement.dataset.theme = theme;
-    localStorage.setItem(THEME_KEY, theme);
-    document.cookie = `${COOKIE_THEME}=${theme};path=/;max-age=31536000;SameSite=Lax`;
   }
 
-  themeToggle.addEventListener("click", () => {
-    const nextTheme = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
-    applyTheme(nextTheme);
-    savePreferences(readMutedFromDom(), nextTheme).catch((error) => {
-      console.error(error);
+  filterList.addEventListener("click", (event) => {
+    const muteBtn = event.target.closest(".app-filter-item__mute-btn");
+    if (muteBtn) {
+      event.preventDefault();
+      event.stopPropagation();
+      toggleMute(muteBtn.dataset.appSlug);
+      return;
+    }
+
+    const focusArea = event.target.closest(".app-filter-item__focus");
+    if (!focusArea) return;
+    event.preventDefault();
+    event.stopPropagation();
+    toggleAppFilter(focusArea.dataset.appSlug);
+  });
+
+  filterList.addEventListener("keydown", (event) => {
+    const focusArea = event.target.closest(".app-filter-item__focus");
+    if (!focusArea) return;
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    toggleAppFilter(focusArea.dataset.appSlug);
+  });
+
+  if (themeToggle) {
+    themeToggle.addEventListener("click", () => {
+      const nextTheme = readTheme() === "dark" ? "light" : "dark";
+      applyTheme(nextTheme);
+      savePreferences(readMutedFromDom(), nextTheme).catch((error) => {
+        console.error(error);
+      });
     });
+  }
+
+  window.setInterval(() => {
+    if (document.visibilityState === "visible") {
+      refreshSidebar();
+    }
+  }, SIDEBAR_POLL_MS);
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+      refreshSidebar();
+    }
   });
 
 })();

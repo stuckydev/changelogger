@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import httpx
 
-from app.core.constants import HTTP_TIMEOUT, USER_AGENT
+from app.settings import HTTP_TIMEOUT, USER_AGENT
 
 _http_client: httpx.AsyncClient | None = None
 

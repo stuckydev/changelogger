@@ -1,0 +1,57 @@
+{% for app in apps %}
+{% set is_muted = app.slug in muted_apps %}
+{% set sync_error = sync_errors.get(app.slug) %}
+<li
+  class="app-filter-item{% if is_muted %} is-muted{% endif %}{% if sync_error %} has-sync-error{% endif %}"
+  data-app-slug="{{ app.slug }}"
+>
+  <div class="app-filter-option">
+    <div
+      class="app-filter-item__focus"
+      data-app-slug="{{ app.slug }}"
+      role="button"
+      tabindex="0"
+      aria-label="{{ app.name }} filtern"
+      aria-pressed="false"
+    >
+      <img
+        class="app-filter-item__logo"
+        src="{{ app.logo_src }}?v={{ static_asset_version }}"
+        alt=""
+        width="20"
+        height="20"
+        loading="lazy"
+        decoding="async"
+      >
+      <span class="app-filter-item__label">
+        <span class="app-filter-item__name">{{ app.name }}</span>
+        <span class="app-filter-item__subline">
+          <span class="app-filter-item__category">{{ app.category_label }}</span>
+          {% if sync_error %}
+          <span class="app-filter-item__sync-error" title="{{ sync_error }}">Sync-Fehler</span>
+          {% endif %}
+        </span>
+      </span>
+    </div>
+    {% set last_update = app_last_updates.get(app.slug) %}
+    {% if last_update %}
+    <time
+      class="app-filter-item__date app-filter-item__date--{{ last_update | update_freshness }}"
+      datetime="{{ last_update.isoformat() }}"
+    >{{ last_update | format_sidebar_date }}</time>
+    {% endif %}
+    <button
+      type="button"
+      class="app-filter-item__mute-btn"
+      data-app-slug="{{ app.slug }}"
+      aria-label="{{ app.name }} stummschalten"
+      aria-pressed="{% if is_muted %}true{% else %}false{% endif %}"
+    >
+      <svg class="app-filter-item__mute-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+        <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+      </svg>
+    </button>
+  </div>
+</li>
+{% endfor %}

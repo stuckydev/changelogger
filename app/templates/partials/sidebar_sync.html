@@ -1,0 +1,5 @@
+{% if last_sync %}
+Zuletzt aktualisiert: {{ last_sync | sync_time }}
+{% else %}
+Noch keine Daten geladen…
+{% endif %}

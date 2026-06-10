@@ -8,7 +8,7 @@
     id="sidebar-toggle"
     aria-controls="app-sidebar"
     aria-expanded="false"
-    aria-label="Open menu"
+    aria-label="Menü öffnen"
   >
     <span class="sidebar-toggle__bars" aria-hidden="true">
       <span></span>
@@ -19,7 +19,7 @@
 
   <div class="sidebar-backdrop" id="sidebar-backdrop" hidden></div>
 
-  <aside class="app-sidebar" id="app-sidebar" aria-label="Menu" aria-hidden="true">
+  <aside class="app-sidebar" id="app-sidebar" aria-label="Menü" aria-hidden="true">
     <div class="app-sidebar__header">
       <div class="app-sidebar__brand">
         <h1 class="app-title">Changelogger</h1>
@@ -28,7 +28,7 @@
         type="button"
         class="sidebar-close"
         id="sidebar-close"
-        aria-label="Close menu"
+        aria-label="Menü schließen"
         hidden
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
@@ -39,75 +39,15 @@
 
     <div class="app-filter">
       <ul class="app-filter-list" id="app-filter-list" role="group" aria-label="Apps">
-            {% for app in page.apps %}
-            <li class="app-filter-item" data-app-slug="{{ app.slug }}">
-              <input
-                type="checkbox"
-                id="app-toggle-{{ app.slug }}"
-                class="app-toggle__input visually-hidden"
-                data-app-slug="{{ app.slug }}"
-                {% if app.slug in page.muted_apps %}checked{% endif %}
-                tabindex="-1"
-                aria-hidden="true"
-              >
-              <div class="app-filter-option">
-                <div
-                  class="app-filter-item__focus"
-                  data-app-slug="{{ app.slug }}"
-                  role="button"
-                  tabindex="0"
-                  aria-label="Show only {{ app.name }}"
-                >
-                  <img
-                    class="app-filter-item__logo"
-                    src="{{ app.logo_src }}?v={{ static_asset_version }}"
-                    alt=""
-                    width="20"
-                    height="20"
-                    loading="lazy"
-                    decoding="async"
-                  >
-                  <span class="app-filter-item__label">
-                    <span class="app-filter-item__name">{{ app.name }}</span>
-                    <span class="app-filter-item__subline">
-                      <span class="app-filter-item__category">{{ app.category_label }}</span>
-                    </span>
-                  </span>
-                </div>
-                {% set last_update = page.app_last_updates.get(app.slug) %}
-                {% if last_update %}
-                <time
-                  class="app-filter-item__date app-filter-item__date--{{ last_update | update_freshness }}"
-                  datetime="{{ last_update.isoformat() }}"
-                >{{ last_update | format_date }}</time>
-                {% endif %}
-                <button
-                  type="button"
-                  class="app-filter-item__mute-btn"
-                  data-app-slug="{{ app.slug }}"
-                  aria-label="Mute {{ app.name }}"
-                  aria-pressed="{% if app.slug in page.muted_apps %}true{% else %}false{% endif %}"
-                >
-                  <svg class="app-filter-item__mute-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
-                    <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-                  </svg>
-                </button>
-              </div>
-            </li>
-            {% endfor %}
+        {% include "partials/sidebar_apps.html" %}
       </ul>
     </div>
 
     <footer class="app-sidebar__footer">
-      <p class="app-sidebar__sync">
-        {% if page.last_sync %}
-        Last updated: {{ page.last_sync | sync_time }}
-        {% else %}
-        No data loaded yet…
-        {% endif %}
+      <p class="app-sidebar__sync" id="sidebar-sync-status">
+        {% include "partials/sidebar_sync.html" %}
       </p>
-      <button type="button" class="sidebar-theme-toggle" id="theme-toggle" aria-label="Toggle theme" title="Toggle theme">
+      <button type="button" class="sidebar-theme-toggle" id="theme-toggle" aria-label="Design umschalten" title="Design umschalten">
         <span class="theme-icon theme-icon--dark" aria-hidden="true">☀</span>
         <span class="theme-icon theme-icon--light" aria-hidden="true">☾</span>
       </button>

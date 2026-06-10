@@ -3,11 +3,11 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
-from app.core.constants import ROOT_DIR
+from app.settings import STATIC_DIR
 
 logger = logging.getLogger(__name__)
 
-LOGO_DIR = ROOT_DIR / "app" / "static" / "logos"
+LOGO_DIR = STATIC_DIR / "logos"
 THUMB_SIZE = 48
 RASTER_EXTENSIONS = {".png", ".ico", ".webp", ".jpg", ".jpeg", ".gif"}
 

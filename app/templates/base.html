@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="{{ page.theme }}">
+<html lang="de" data-theme="{{ page.theme }}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -7,17 +7,11 @@
   <title>Changelogger</title>
   <link rel="icon" href="/static/favicon.svg?v={{ static_asset_version }}" type="image/svg+xml">
   <link rel="preload" href="/static/fonts/inter/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="/static/fonts.css?v={{ static_asset_version }}">
-  <link rel="stylesheet" href="/static/app.css?v={{ static_asset_version }}">
+  <style>{{ inline_app_styles | safe }}</style>
   <script>
     (function () {
-      var key = "{{ app_prefix }}-theme";
-      var cookieName = "{{ app_prefix }}_theme";
-      var stored = localStorage.getItem(key);
-      if (stored === "light" || stored === "dark") {
-        document.documentElement.dataset.theme = stored;
-        document.cookie = cookieName + "=" + stored + ";path=/;max-age=31536000;SameSite=Lax";
-      }
+      var match = document.cookie.match(/(?:^|;\s*){{ app_prefix }}_theme=(dark|light)/);
+      if (match) document.documentElement.dataset.theme = match[1];
     })();
   </script>
 </head>

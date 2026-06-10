@@ -43,7 +43,7 @@
 
       <footer class="feed-card__footer">
         <a class="feed-card__more" href="{{ entry.source_url }}" target="_blank" rel="noopener noreferrer">
-          more…
+          mehr…
         </a>
       </footer>
     </article>
@@ -53,11 +53,11 @@
 {% endif %}
 
 <div id="feed-empty-filtered" class="empty-state{% if entries or not has_sync_data %} is-hidden{% endif %}" role="status">
-  <p class="empty-state__title">No visible entries</p>
-  <p class="empty-state__text">Open the menu and unmute at least one app to see updates in the feed.</p>
+  <p class="empty-state__title">Keine sichtbaren Einträge</p>
+  <p class="empty-state__text">Menü öffnen und mindestens eine App wieder einblenden.</p>
 </div>
 
 <div id="feed-empty-sync" class="empty-state{% if has_sync_data %} is-hidden{% endif %}" role="status">
-  <p class="empty-state__title">No changelog data yet</p>
-  <p class="empty-state__text">The first sync runs on startup — wait a moment and refresh the page.</p>
+  <p class="empty-state__title">Noch keine Changelog-Daten</p>
+  <p class="empty-state__text">Der erste Sync läuft beim Start — kurz warten und Seite neu laden.</p>
 </div>

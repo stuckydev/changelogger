@@ -10,8 +10,10 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from app.infra.logos import ensure_thumb
-LOGO_DIR = ROOT / "app" / "static" / "logos"
-HEADERS = {"User-Agent": "Changelogger/1.0 (+https://github.com/changelogger)"}
+from app.settings import HTTP_TIMEOUT, STATIC_DIR, USER_AGENT
+
+LOGO_DIR = STATIC_DIR / "logos"
+HEADERS = {"User-Agent": USER_AGENT}
 
 SOURCES = {
     "todoist": {
@@ -74,7 +76,7 @@ SOURCES = {
 
 def main() -> None:
     LOGO_DIR.mkdir(parents=True, exist_ok=True)
-    with httpx.Client(timeout=30, follow_redirects=True, headers=HEADERS) as client:
+    with httpx.Client(timeout=HTTP_TIMEOUT, follow_redirects=True, headers=HEADERS) as client:
         for slug, meta in SOURCES.items():
             response = client.get(meta["url"])
             response.raise_for_status()
