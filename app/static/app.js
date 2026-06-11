@@ -230,9 +230,13 @@
     }
   }
 
+  const THEME_COLORS = { dark: "#06080f", light: "#eef1f8" };
+
   function applyTheme(theme) {
     document.documentElement.dataset.theme = theme;
     document.cookie = `${COOKIE_THEME}=${theme};path=/;max-age=31536000;SameSite=Lax`;
+    const meta = document.getElementById("meta-theme-color");
+    if (meta) meta.content = THEME_COLORS[theme] || THEME_COLORS.dark;
   }
 
   if (sidebarToggle) {
@@ -298,6 +302,24 @@
       savePreferences(readMutedFromDom(), nextTheme).catch((error) => {
         console.error(error);
       });
+    });
+  }
+
+  const scrollTopBtn = document.getElementById("scroll-top");
+  if (scrollTopBtn) {
+    let scrollTopVisible = false;
+    const updateScrollTop = () => {
+      const shouldShow = window.scrollY > 600;
+      if (shouldShow !== scrollTopVisible) {
+        scrollTopVisible = shouldShow;
+        scrollTopBtn.classList.toggle("is-visible", shouldShow);
+      }
+    };
+    window.addEventListener("scroll", updateScrollTop, { passive: true });
+    updateScrollTop();
+    scrollTopBtn.addEventListener("click", () => {
+      const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
     });
   }
 

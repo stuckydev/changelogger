@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Runtime data (mounted as volume)
+data/*
+!data/.gitkeep
+
+# Local env
+.env
+
+# VCS / IDE
+.git/
+.gitignore
+.gitattributes
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Dev-only
+scripts/
+start_app.bat

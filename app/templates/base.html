@@ -2,8 +2,9 @@
 <html lang="de" data-theme="{{ page.theme }}">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="color-scheme" content="dark light">
+  <meta name="theme-color" id="meta-theme-color" content="{{ '#06080f' if page.theme == 'dark' else '#eef1f8' }}">
   <title>Changelogger</title>
   <link rel="icon" href="/static/favicon.svg?v={{ static_asset_version }}" type="image/svg+xml">
   <link rel="preload" href="/static/fonts/inter/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
@@ -11,7 +12,11 @@
   <script>
     (function () {
       var match = document.cookie.match(/(?:^|;\s*){{ app_prefix }}_theme=(dark|light)/);
-      if (match) document.documentElement.dataset.theme = match[1];
+      if (match) {
+        document.documentElement.dataset.theme = match[1];
+        var meta = document.getElementById("meta-theme-color");
+        if (meta) meta.content = match[1] === "dark" ? "#06080f" : "#eef1f8";
+      }
     })();
   </script>
 </head>

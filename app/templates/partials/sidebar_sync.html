@@ -1,5 +1,5 @@
 {% if last_sync %}
-Zuletzt aktualisiert: {{ last_sync | sync_time }}
+<span class="sync-dot" aria-hidden="true"></span><span class="sync-text">Aktualisiert: {{ last_sync | sync_time }}</span>
 {% else %}
-Noch keine Daten geladen…
+<span class="sync-dot sync-dot--idle" aria-hidden="true"></span><span class="sync-text">Noch keine Daten geladen…</span>
 {% endif %}

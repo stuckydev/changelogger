@@ -54,6 +54,21 @@ def format_date(value: datetime) -> str:
     return value.strftime("%d.%m.%Y")
 
 
+def days_since(value: datetime) -> int:
+    return (datetime.now().date() - value.date()).days
+
+
+def format_relative_date(value: datetime) -> str:
+    delta = days_since(value)
+    if delta <= 0:
+        return "heute"
+    if delta == 1:
+        return "gestern"
+    if delta < 7:
+        return f"vor {delta} Tagen"
+    return value.strftime("%d.%m.%Y")
+
+
 def format_sidebar_date(value: datetime | None) -> str:
     if value is None:
         return "—"

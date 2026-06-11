@@ -1,2 +1,23 @@
-include:
-  - docker/compose.yml
+services:
+  changelogger:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    image: changelogger:1.0.0
+    container_name: changelogger
+    restart: unless-stopped
+    init: true
+    env_file:
+      - .env
+    ports:
+      - "${PORT:-47173}:8000"
+    volumes:
+      - ./data:/app/data
+      - ./config:/app/config:ro
+    user: "${UID:-1000}:${GID:-1000}"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s

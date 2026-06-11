@@ -2,27 +2,63 @@
 
 {% block body %}
 <div class="app-shell">
-  <button
-    type="button"
-    class="sidebar-toggle"
-    id="sidebar-toggle"
-    aria-controls="app-sidebar"
-    aria-expanded="false"
-    aria-label="Menü öffnen"
-  >
-    <span class="sidebar-toggle__bars" aria-hidden="true">
-      <span></span>
-      <span></span>
-      <span></span>
-    </span>
-  </button>
+  <header class="topbar">
+    <div class="topbar__brand">
+      <svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true">
+        <defs>
+          <linearGradient id="bmg-t" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#818cf8"/>
+            <stop offset="1" stop-color="#22d3ee"/>
+          </linearGradient>
+        </defs>
+        <rect width="64" height="64" rx="16" fill="url(#bmg-t)" opacity="0.14"/>
+        <rect x="1.5" y="1.5" width="61" height="61" rx="14.5" fill="none" stroke="url(#bmg-t)" stroke-width="3" opacity="0.45"/>
+        <rect x="15" y="17" width="22" height="6" rx="3" fill="url(#bmg-t)"/>
+        <circle cx="45.5" cy="20" r="4.5" fill="url(#bmg-t)"/>
+        <rect x="15" y="29" width="34" height="6" rx="3" fill="url(#bmg-t)" opacity="0.62"/>
+        <rect x="15" y="41" width="27" height="6" rx="3" fill="url(#bmg-t)" opacity="0.38"/>
+      </svg>
+      <span class="brand-wordmark">Changelogger</span>
+    </div>
+    <button
+      type="button"
+      class="sidebar-toggle"
+      id="sidebar-toggle"
+      aria-controls="app-sidebar"
+      aria-expanded="false"
+      aria-label="Menü öffnen"
+    >
+      <span class="sidebar-toggle__bars" aria-hidden="true">
+        <span></span>
+        <span></span>
+        <span></span>
+      </span>
+    </button>
+  </header>
 
   <div class="sidebar-backdrop" id="sidebar-backdrop" hidden></div>
 
   <aside class="app-sidebar" id="app-sidebar" aria-label="Menü" aria-hidden="true">
     <div class="app-sidebar__header">
       <div class="app-sidebar__brand">
-        <h1 class="app-title">Changelogger</h1>
+        <svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true">
+          <defs>
+            <linearGradient id="bmg-s" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#818cf8"/>
+              <stop offset="1" stop-color="#22d3ee"/>
+            </linearGradient>
+          </defs>
+          <rect width="64" height="64" rx="16" fill="url(#bmg-s)" opacity="0.14"/>
+          <rect x="1.5" y="1.5" width="61" height="61" rx="14.5" fill="none" stroke="url(#bmg-s)" stroke-width="3" opacity="0.45"/>
+          <rect x="15" y="17" width="22" height="6" rx="3" fill="url(#bmg-s)"/>
+          <circle cx="45.5" cy="20" r="4.5" fill="url(#bmg-s)"/>
+          <rect x="15" y="29" width="34" height="6" rx="3" fill="url(#bmg-s)" opacity="0.62"/>
+          <rect x="15" y="41" width="27" height="6" rx="3" fill="url(#bmg-s)" opacity="0.38"/>
+        </svg>
+        <div class="app-sidebar__brand-text">
+          <h1 class="brand-wordmark">Changelogger</h1>
+          <p class="brand-tagline">Alle Updates im Blick</p>
+        </div>
       </div>
       <button
         type="button"
@@ -37,6 +73,11 @@
       </button>
     </div>
 
+    <p class="app-filter__label">
+      <span>Apps</span>
+      <span class="app-filter__count">{{ apps | length }}</span>
+    </p>
+
     <div class="app-filter">
       <ul class="app-filter-list" id="app-filter-list" role="group" aria-label="Apps">
         {% include "partials/sidebar_apps.html" %}
@@ -48,8 +89,13 @@
         {% include "partials/sidebar_sync.html" %}
       </p>
       <button type="button" class="sidebar-theme-toggle" id="theme-toggle" aria-label="Design umschalten" title="Design umschalten">
-        <span class="theme-icon theme-icon--dark" aria-hidden="true">☀</span>
-        <span class="theme-icon theme-icon--light" aria-hidden="true">☾</span>
+        <svg class="theme-icon theme-icon--dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="4"/>
+          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+        </svg>
+        <svg class="theme-icon theme-icon--light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
       </button>
     </footer>
   </aside>
@@ -61,5 +107,11 @@
       {% endwith %}
     </div>
   </main>
+
+  <button type="button" class="scroll-top" id="scroll-top" aria-label="Nach oben scrollen">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M12 19V5M5 12l7-7 7 7"/>
+    </svg>
+  </button>
 </div>
 {% endblock %}
