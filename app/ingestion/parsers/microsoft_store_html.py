@@ -9,6 +9,15 @@ from app.models.changelog import ParsedEntry
 from app.ingestion.normalize import normalize_highlights
 
 PAGE_METADATA_RE = re.compile(r"window\.pageMetadata\s*=\s*(\{.*?\});\s*\n", re.S)
+STORE_DETAIL_RE = re.compile(r"apps\.microsoft\.com/detail/([a-zA-Z0-9]+)", re.I)
+
+
+def microsoft_store_en_url(source_url: str) -> str:
+    """Always fetch English release notes; Store locale query params override Accept-Language."""
+    match = STORE_DETAIL_RE.search(source_url)
+    if not match:
+        return source_url
+    return f"https://apps.microsoft.com/detail/{match.group(1)}?hl=en-US&gl=US"
 
 
 def parse_microsoft_store_html(content: str, *, source_url: str, limit: int = ENTRIES_PER_APP) -> list[ParsedEntry]:

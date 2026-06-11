@@ -8,6 +8,7 @@ from typing import Literal
 import yaml
 
 from app.infra.logos import thumb_url_for_slug
+from app.ingestion.parsers.microsoft_store_html import microsoft_store_en_url
 from app.settings import CONFIG_PATH, STATIC_DIR
 
 AppCategory = Literal["saas", "selfhosted", "games", "utilities"]
@@ -91,6 +92,8 @@ def load_apps() -> tuple[AppConfig, ...]:
                 source_url = github_releases_url(github_repo)
         elif not source_url:
             raise ValueError(f"App '{item['slug']}': source_url is required")
+        if parser == "microsoft_store_html":
+            source_url = microsoft_store_en_url(source_url)
 
         slug = item["slug"]
         raw_category = item.get("category", "utilities")
