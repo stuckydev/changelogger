@@ -898,6 +898,10 @@ html[data-theme="light"] .theme-icon--dark {
   color: var(--text-2);
 }
 
+.feed-month-divider.is-pinned-hidden .feed-month-divider__label {
+  visibility: hidden;
+}
+
 @media (min-width: 48rem) {
   .feed-month-divider {
     top: var(--space-3);

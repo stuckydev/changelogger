@@ -113,6 +113,37 @@
       }
       item.classList.toggle("is-hidden", !hasVisible);
     }
+
+    updateStickyMonthDividers();
+  }
+
+  function getMonthDividerStickyTop() {
+    const divider = feedRoot?.querySelector(".feed-month-divider:not(.is-hidden)");
+    if (!divider) return 0;
+    const top = parseFloat(getComputedStyle(divider).top);
+    return Number.isFinite(top) ? top : 0;
+  }
+
+  function updateStickyMonthDividers() {
+    const feedList = feedRoot?.querySelector("#feed-list");
+    if (!feedList) return;
+
+    const dividers = Array.from(feedList.querySelectorAll(".feed-month-divider:not(.is-hidden)"));
+    if (!dividers.length) return;
+
+    const stickyTop = getMonthDividerStickyTop();
+    let pinnedIndex = -1;
+
+    dividers.forEach((divider, index) => {
+      divider.style.zIndex = String(6 + index);
+      if (divider.getBoundingClientRect().top <= stickyTop + 1) {
+        pinnedIndex = index;
+      }
+    });
+
+    dividers.forEach((divider, index) => {
+      divider.classList.toggle("is-pinned-hidden", pinnedIndex >= 0 && index < pinnedIndex);
+    });
   }
 
   function updateFeedEmptyStates() {
@@ -304,6 +335,20 @@
       });
     });
   }
+
+  let stickyMonthTicking = false;
+  function scheduleStickyMonthUpdate() {
+    if (stickyMonthTicking) return;
+    stickyMonthTicking = true;
+    requestAnimationFrame(() => {
+      stickyMonthTicking = false;
+      updateStickyMonthDividers();
+    });
+  }
+
+  window.addEventListener("scroll", scheduleStickyMonthUpdate, { passive: true });
+  window.addEventListener("resize", scheduleStickyMonthUpdate, { passive: true });
+  scheduleStickyMonthUpdate();
 
   const scrollTopBtn = document.getElementById("scroll-top");
   if (scrollTopBtn) {
