@@ -45,6 +45,6 @@ Apps are defined in `config/apps.yaml`:
     parser: github_releases
 ```
 
-Parser types: `rss`, `github_releases`, `todoist_html`, `notion_html`, `capacities_html`, `cursor_html`, `microsoft_store_html`, `zendesk_articles`.
+Parser types: `rss`, `github_releases`, `todoist_html`, `notion_html`, `cursor_html`, `microsoft_store_html`, `zendesk_articles`.
 
 Restart the app after changes — sources sync on startup.

@@ -1,5 +1,5 @@
 # App configuration — add new apps here.
-# parser: rss | todoist_html | notion_html | github_releases | capacities_html | cursor_html | microsoft_store_html | zendesk_articles
+# parser: rss | todoist_html | notion_html | github_releases | cursor_html | microsoft_store_html | zendesk_articles
 # github_releases: set github_repo (source_url is derived automatically)
 # logo_url: optional, defaults to /static/logos/{slug}.svg
 # category: saas | selfhosted | games | utilities
@@ -23,12 +23,6 @@ apps:
     category: saas
     source_url: https://www.notion.com/releases
     parser: notion_html
-
-  - slug: capacities
-    name: Capacities
-    category: saas
-    source_url: https://capacities.io/whats-new/
-    parser: capacities_html
 
   - slug: cursor
     name: Cursor

@@ -27,7 +27,6 @@ ParserType = Literal[
     "todoist_html",
     "notion_html",
     "github_releases",
-    "capacities_html",
     "cursor_html",
     "microsoft_store_html",
     "zendesk_articles",

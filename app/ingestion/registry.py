@@ -6,7 +6,6 @@ from collections.abc import Awaitable, Callable
 from app.catalog.apps import AppConfig, ParserType
 from app.settings import ENTRIES_PER_APP
 from app.models.changelog import ParsedEntry
-from app.ingestion.parsers.capacities_html import parse_capacities_html
 from app.ingestion.parsers.cursor_html import parse_cursor_html
 from app.ingestion.parsers.github_releases import parse_github_releases
 from app.ingestion.parsers.microsoft_store_html import parse_microsoft_store_html
@@ -28,7 +27,6 @@ PARSERS: dict[ParserType, ParserFn] = {
         limit=limit,
         prerelease_keys=github_prerelease_keys,
     ),
-    "capacities_html": lambda content, *, app, limit: parse_capacities_html(content, source_url=app.source_url, limit=limit),
     "cursor_html": lambda content, *, app, limit: parse_cursor_html(content, source_url=app.source_url, limit=limit),
     "microsoft_store_html": lambda content, *, app, limit: parse_microsoft_store_html(
         content, source_url=app.source_url, limit=limit
