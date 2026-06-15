@@ -11,16 +11,17 @@ from app.infra.http import close_http_client
 from app.infra.logos import ensure_logo_thumbs
 from app.ingestion.sync import sync_all
 from app.presentation.routes import api, health, pages
-from app.settings import REFRESH_INTERVAL_SECONDS, STATIC_DIR
+from app.settings import STATIC_DIR
 from app.storage.db import SessionLocal, engine
 from app.storage.migrations import run_migrations
+from app.utils.date_utils import seconds_until_next_hour
 
 logger = logging.getLogger(__name__)
 
 
 async def _run_sync_loop() -> None:
     while True:
-        await asyncio.sleep(REFRESH_INTERVAL_SECONDS)
+        await asyncio.sleep(seconds_until_next_hour())
         db = SessionLocal()
         try:
             results = await sync_all(db)

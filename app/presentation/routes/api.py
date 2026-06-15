@@ -11,7 +11,7 @@ from app.catalog.apps import all_slugs
 from app.settings import COOKIE_MUTED_APPS, COOKIE_THEME
 from app.storage.db import get_db
 from app.user_prefs.cookies import cookie_kwargs
-from app.presentation.feed_context import build_feed_context, build_page_context, build_sidebar_context
+from app.presentation.feed_context import build_feed_context, build_sidebar_context
 from app.presentation.jinja import render_page, render_template
 
 router = APIRouter(prefix="/api")

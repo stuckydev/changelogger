@@ -170,6 +170,15 @@
     updateFeedEmptyStates();
   }
 
+  function resetToHome() {
+    setFocusedApp(null);
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
+    if (isMobileSidebar()) {
+      closeSidebar();
+    }
+  }
+
   function setFocusedApp(slug) {
     focusedAppSlug = slug || null;
     if (!filterList) return;
@@ -294,6 +303,13 @@
   }
 
   syncSidebarLayout();
+
+  document.querySelectorAll("#sidebar-home, #topbar-home").forEach((homeLink) => {
+    homeLink.addEventListener("click", (event) => {
+      event.preventDefault();
+      resetToHome();
+    });
+  });
 
   function toggleAppFilter(slug) {
     setFocusedApp(focusedAppSlug === slug ? null : slug);

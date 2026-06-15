@@ -22,8 +22,11 @@ PARSERS: dict[ParserType, ParserFn] = {
     "rss": lambda content, *, app, limit: parse_rss(content, limit=limit),
     "todoist_html": lambda content, *, app, limit: parse_todoist_html(content, source_url=app.source_url, limit=limit),
     "notion_html": lambda content, *, app, limit: parse_notion_html(content, source_url=app.source_url, limit=limit),
-    "github_releases": lambda content, *, app, limit: parse_github_releases(
-        content, simple=app.github_simple, limit=limit
+    "github_releases": lambda content, *, app, limit, github_prerelease_keys=None: parse_github_releases(
+        content,
+        simple=app.github_simple,
+        limit=limit,
+        prerelease_keys=github_prerelease_keys,
     ),
     "capacities_html": lambda content, *, app, limit: parse_capacities_html(content, source_url=app.source_url, limit=limit),
     "cursor_html": lambda content, *, app, limit: parse_cursor_html(content, source_url=app.source_url, limit=limit),
@@ -34,12 +37,21 @@ PARSERS: dict[ParserType, ParserFn] = {
 }
 
 
-async def parse_with_registry(app: AppConfig, content: str) -> list[ParsedEntry]:
+async def parse_with_registry(
+    app: AppConfig,
+    content: str,
+    *,
+    github_prerelease_keys: frozenset[str] | None = None,
+) -> list[ParsedEntry]:
     parser = PARSERS.get(app.parser)
     if parser is None:
         raise ValueError(f"Unknown parser: {app.parser}")
 
-    result = parser(content, app=app, limit=ENTRIES_PER_APP)
+    kwargs = {"app": app, "limit": ENTRIES_PER_APP}
+    if app.parser == "github_releases":
+        kwargs["github_prerelease_keys"] = github_prerelease_keys
+
+    result = parser(content, **kwargs)
     if inspect.isawaitable(result):
         return await result
     return result

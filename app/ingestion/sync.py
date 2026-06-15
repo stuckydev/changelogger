@@ -12,15 +12,17 @@ from app.settings import ENTRIES_PER_APP
 from app.storage.models import AppSyncStatus, ChangelogEntry
 from app.models.changelog import ParsedEntry, highlights_to_json, make_entry_id
 from app.ingestion.errors import FetchError
+from app.storage.sync_metadata_repo import save_last_new_entries_count
 from app.ingestion.fetcher import fetch_source
 from app.ingestion.pipeline import parse_recent
 
 logger = logging.getLogger(__name__)
 
 
-def upsert_recent(db: Session, app: AppConfig, entries: list[ParsedEntry]) -> None:
+def upsert_recent(db: Session, app: AppConfig, entries: list[ParsedEntry]) -> int:
     now = datetime.now(timezone.utc).replace(tzinfo=None)
     kept_ids: set[str] = set()
+    new_count = 0
 
     for entry in entries:
         entry_id = make_entry_id(app.slug, entry.external_id)
@@ -37,6 +39,7 @@ def upsert_recent(db: Session, app: AppConfig, entries: list[ParsedEntry]) -> No
         }
         if existing is None:
             db.add(ChangelogEntry(id=entry_id, **payload))
+            new_count += 1
         else:
             for key, value in payload.items():
                 setattr(existing, key, value)
@@ -59,6 +62,8 @@ def upsert_recent(db: Session, app: AppConfig, entries: list[ParsedEntry]) -> No
         if kept_seen > ENTRIES_PER_APP:
             db.delete(row)
 
+    return new_count
+
 
 def record_sync_status(db: Session, app_slug: str, error: str | None) -> None:
     now = datetime.now(timezone.utc).replace(tzinfo=None)
@@ -74,25 +79,25 @@ def _persist_app_sync(
     db: Session,
     app: AppConfig,
     outcome: list[ParsedEntry] | FetchError,
-) -> str | None:
+) -> tuple[str | None, int]:
     if isinstance(outcome, FetchError):
         record_sync_status(db, app.slug, str(outcome))
         db.commit()
-        return str(outcome)
+        return str(outcome), 0
 
     try:
-        upsert_recent(db, app, outcome)
+        new_count = upsert_recent(db, app, outcome)
         record_sync_status(db, app.slug, None)
         db.commit()
         logger.info("Synced %s: %s", app.slug, outcome[0].title)
-        return None
+        return None, new_count
     except Exception as exc:
         db.rollback()
         logger.exception("Upsert failed for %s: %s", app.slug, exc)
         message = str(exc)
         record_sync_status(db, app.slug, message)
         db.commit()
-        return message
+        return message, 0
 
 
 async def _fetch_entries(app: AppConfig) -> tuple[AppConfig, list[ParsedEntry] | FetchError]:
@@ -111,11 +116,16 @@ async def sync_all(db: Session) -> dict[str, str | None]:
     outcomes = await asyncio.gather(*[_fetch_entries(app) for app in load_apps()])
 
     results: dict[str, str | None] = {}
+    new_entries_count = 0
     for app, outcome in outcomes:
         try:
-            results[app.slug] = _persist_app_sync(db, app, outcome)
+            error, new_count = _persist_app_sync(db, app, outcome)
+            results[app.slug] = error
+            new_entries_count += new_count
         except Exception:
             db.rollback()
             logger.exception("Could not persist sync status for %s", app.slug)
             results[app.slug] = "Could not persist sync status"
+
+    save_last_new_entries_count(db, new_entries_count)
     return results

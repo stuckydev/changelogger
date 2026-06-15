@@ -3,7 +3,7 @@
 {% block body %}
 <div class="app-shell">
   <header class="topbar">
-    <div class="topbar__brand">
+    <a href="/" class="topbar__brand topbar__brand-link" id="topbar-home" aria-label="Startseite">
       <svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true">
         <defs>
           <linearGradient id="bmg-t" x1="0" y1="0" x2="1" y2="1">
@@ -19,7 +19,7 @@
         <rect x="15" y="41" width="27" height="6" rx="3" fill="url(#bmg-t)" opacity="0.38"/>
       </svg>
       <span class="brand-wordmark">Changelogger</span>
-    </div>
+    </a>
     <button
       type="button"
       class="sidebar-toggle"
@@ -40,7 +40,7 @@
 
   <aside class="app-sidebar" id="app-sidebar" aria-label="Menü" aria-hidden="true">
     <div class="app-sidebar__header">
-      <div class="app-sidebar__brand">
+      <a href="/" class="app-sidebar__brand app-sidebar__brand-link" id="sidebar-home" aria-label="Startseite">
         <svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true">
           <defs>
             <linearGradient id="bmg-s" x1="0" y1="0" x2="1" y2="1">
@@ -59,7 +59,7 @@
           <h1 class="brand-wordmark">Changelogger</h1>
           <p class="brand-tagline">Alle Updates im Blick</p>
         </div>
-      </div>
+      </a>
       <button
         type="button"
         class="sidebar-close"
@@ -73,10 +73,7 @@
       </button>
     </div>
 
-    <p class="app-filter__label">
-      <span>Apps</span>
-      <span class="app-filter__count">{{ apps | length }}</span>
-    </p>
+    <p class="app-filter__label">Apps</p>
 
     <div class="app-filter">
       <ul class="app-filter-list" id="app-filter-list" role="group" aria-label="Apps">

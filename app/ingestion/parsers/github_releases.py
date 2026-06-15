@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from dataclasses import replace
 from datetime import datetime, timezone
+from urllib.parse import unquote
 
 import feedparser
 from bs4 import BeautifulSoup
@@ -22,6 +23,10 @@ BOILERPLATE_RE = re.compile(
 )
 USELESS_HIGHLIGHT_RE = re.compile(
     r"see the full release notes|view release notes|please note:",
+    re.I,
+)
+PRERELEASE_HEURISTIC_RE = re.compile(
+    r"-(?:dev\d|alpha|beta|rc(?:\.|\d|$))",
     re.I,
 )
 
@@ -63,6 +68,52 @@ def tag_lookup_keys(tag: str) -> list[str]:
     return ordered
 
 
+def release_item_lookup_keys(item) -> list[str]:
+    keys: list[str] = []
+    title = (item.get("title") or "").strip()
+    if title:
+        keys.extend(release_tag_lookup_keys(title))
+    link = (item.get("link") or "").strip()
+    if "/releases/tag/" in link:
+        tag = unquote(link.rsplit("/releases/tag/", 1)[-1]).strip()
+        keys.extend(tag_lookup_keys(tag))
+        if "/" in tag:
+            keys.extend(tag_lookup_keys(tag.rsplit("/", 1)[-1]))
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for key in keys:
+        if key not in seen:
+            seen.add(key)
+            ordered.append(key)
+    return ordered
+
+
+def is_likely_github_prerelease(title: str, url: str = "") -> bool:
+    title = title.strip()
+    if title.lower().startswith("pre-release"):
+        return True
+    combined = f"{title} {unquote(url)}"
+    return bool(PRERELEASE_HEURISTIC_RE.search(combined))
+
+
+def is_github_prerelease_item(item, prerelease_keys: frozenset[str] | None) -> bool:
+    title = (item.get("title") or "").strip()
+    link = (item.get("link") or "").strip()
+    if is_likely_github_prerelease(title, link):
+        return True
+    if not prerelease_keys:
+        return False
+    return any(key in prerelease_keys for key in release_item_lookup_keys(item))
+
+
+def is_github_prerelease_entry(entry: ParsedEntry, prerelease_keys: frozenset[str] | None) -> bool:
+    if is_likely_github_prerelease(entry.title, entry.source_url):
+        return True
+    if not prerelease_keys:
+        return False
+    return any(key in prerelease_keys for key in release_tag_lookup_keys(entry.title))
+
+
 def apply_github_release_dates(
     entries: list[ParsedEntry],
     date_by_tag: dict[str, datetime],
@@ -89,6 +140,7 @@ async def parse_github_releases(
     *,
     simple: bool = False,
     limit: int = ENTRIES_PER_APP,
+    prerelease_keys: frozenset[str] | None = None,
 ) -> list[ParsedEntry]:
     feed = feedparser.parse(content)
     if not feed.entries:
@@ -96,14 +148,18 @@ async def parse_github_releases(
 
     if simple:
         results: list[ParsedEntry] = []
-        for item in feed.entries[:limit]:
+        for item in feed.entries:
+            if is_github_prerelease_item(item, prerelease_keys):
+                continue
             entry = _parse_simple_release_item(item)
             if entry is not None:
                 results.append(entry)
+            if len(results) >= limit:
+                break
         return results
 
     results: list[ParsedEntry] = []
-    for item in _pick_recent_entries(feed.entries, limit=limit):
+    for item in _pick_recent_entries(feed.entries, limit=limit, prerelease_keys=prerelease_keys):
         try:
             entry = await _parse_release_item(item)
         except ValueError:
@@ -203,17 +259,14 @@ def _entry_published_at(title: str, item) -> datetime:
     return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
-def _pick_recent_entries(entries, *, limit: int = ENTRIES_PER_APP):
+def _pick_recent_entries(entries, *, limit: int = ENTRIES_PER_APP, prerelease_keys: frozenset[str] | None = None):
     picked = []
     for entry in entries:
-        title = (entry.get("title") or "").lower()
-        if title.startswith("pre-release"):
+        if is_github_prerelease_item(entry, prerelease_keys):
             continue
         picked.append(entry)
         if len(picked) >= limit:
             break
-    if not picked and entries:
-        return entries[:limit]
     return picked
 
 

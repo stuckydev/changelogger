@@ -70,3 +70,9 @@ def update_freshness(value: datetime | None) -> str:
     if age <= timedelta(days=180):
         return "aging"
     return "stale"
+
+
+def seconds_until_next_hour() -> float:
+    now = datetime.now(DISPLAY_TZ)
+    next_hour = now.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
+    return (next_hour - now).total_seconds()

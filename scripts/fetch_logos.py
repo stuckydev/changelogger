@@ -71,6 +71,11 @@ SOURCES = {
         "filename": "powertoys.ico",
         "source_note": "microsoft/PowerToys official settings icon",
     },
+    "jetkvm": {
+        "url": "https://github.com/jetkvm.png",
+        "filename": "jetkvm.png",
+        "source_note": "jetkvm GitHub organization avatar",
+    },
 }
 
 

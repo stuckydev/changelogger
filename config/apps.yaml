@@ -77,3 +77,9 @@ apps:
     github_repo: microsoft/PowerToys
     parser: github_releases
     github_simple: true
+
+  - slug: jetkvm
+    name: JetKVM
+    category: utilities
+    github_repo: jetkvm/kvm
+    parser: github_releases

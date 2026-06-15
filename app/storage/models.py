@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import DateTime, Index, String, Text, UniqueConstraint
+from sqlalchemy import DateTime, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.storage.db import Base
@@ -32,3 +32,10 @@ class AppSyncStatus(Base):
     app_slug: Mapped[str] = mapped_column(String(64), primary_key=True)
     last_sync_at: Mapped[datetime] = mapped_column(DateTime(timezone=False), nullable=False)
     last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+class SyncMetadata(Base):
+    __tablename__ = "sync_metadata"
+
+    key: Mapped[str] = mapped_column(String(64), primary_key=True)
+    int_value: Mapped[int] = mapped_column(Integer, nullable=False, default=0)

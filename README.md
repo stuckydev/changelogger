@@ -10,7 +10,7 @@ A lightweight web app that aggregates public changelogs for selected software an
 - Sidebar with mute, focus filter, and sync status
 - Dark/light mode, responsive layout
 - Server-side fetch and parse (RSS, HTML, GitHub Releases, and more)
-- Background sync every 6 hours
+- Background sync every full hour (Europe/Zurich)
 
 ## Quick start
 

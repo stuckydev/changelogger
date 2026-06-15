@@ -1,5 +1,8 @@
 {% if last_sync %}
-<span class="sync-dot" aria-hidden="true"></span><span class="sync-text">Aktualisiert: {{ last_sync | sync_time }}</span>
+<span class="sync-text">Aktualisiert: {{ last_sync | sync_time }}</span>
+{% if last_new_entries_count is not none %}
+<span class="sync-changes">{% if last_new_entries_count == 0 %}Keine Änderungen{% elif last_new_entries_count == 1 %}1 neuer Eintrag gefunden{% else %}{{ last_new_entries_count }} neue Einträge gefunden{% endif %}</span>
+{% endif %}
 {% else %}
-<span class="sync-dot sync-dot--idle" aria-hidden="true"></span><span class="sync-text">Noch keine Daten geladen…</span>
+<span class="sync-text">Noch keine Daten geladen…</span>
 {% endif %}

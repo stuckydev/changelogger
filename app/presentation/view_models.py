@@ -31,6 +31,7 @@ class PageContext:
     app_last_updates: dict[str, datetime]
     sync_errors: dict[str, str]
     has_sync_data: bool = False
+    last_new_entries_count: int | None = None
 
 
 GERMAN_MONTHS = (

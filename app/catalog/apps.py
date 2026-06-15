@@ -50,7 +50,7 @@ def _resolve_logo_src(slug: str, logo_url: str | None) -> str:
                 if thumb:
                     return thumb
             return f"/static/logos/{slug}{extension}"
-    return f"/static/logos/{slug}.svg"
+    return f"/static/logos/{slug}.png"
 
 
 @dataclass(frozen=True)
@@ -59,12 +59,15 @@ class AppConfig:
     name: str
     source_url: str
     parser: ParserType
-    logo_src: str
     category: AppCategory
     subtitle: str | None = None
     github_repo: str | None = None
     logo_url: str | None = None
     github_simple: bool = False
+
+    @property
+    def logo_src(self) -> str:
+        return _resolve_logo_src(self.slug, self.logo_url)
 
     @property
     def display_name(self) -> str:
@@ -108,7 +111,6 @@ def load_apps() -> tuple[AppConfig, ...]:
                 name=item["name"],
                 source_url=source_url,
                 parser=parser,
-                logo_src=_resolve_logo_src(slug, item.get("logo_url")),
                 category=category,
                 subtitle=item.get("subtitle"),
                 github_repo=github_repo,

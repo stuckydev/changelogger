@@ -8,6 +8,7 @@ from app.settings import COOKIE_MUTED_APPS, COOKIE_THEME, DEFAULT_THEME
 from app.user_prefs.cookies import parse_muted_apps, visible_apps_from_muted
 from app.presentation.view_models import PageContext, build_feed_views
 from app.storage.entries_repo import count_entries, latest_published_per_app, latest_sync, list_entries
+from app.storage.sync_metadata_repo import get_last_new_entries_count
 from app.storage.sync_status_repo import sync_errors_by_slug
 
 
@@ -30,6 +31,7 @@ def build_page_context(db: Session, request: Request) -> PageContext:
         entries=build_feed_views(entries, apps_by_slug()),
         theme=theme_from_cookie(request.cookies.get(COOKIE_THEME)),
         last_sync=latest_sync(db),
+        last_new_entries_count=get_last_new_entries_count(db),
         app_last_updates=app_last_updates,
         sync_errors=sync_errors_by_slug(db),
         has_sync_data=has_sync_data,
@@ -58,4 +60,5 @@ def build_sidebar_context(db: Session, request: Request) -> dict:
         "app_last_updates": app_last_updates,
         "sync_errors": sync_errors_by_slug(db),
         "last_sync": latest_sync(db),
+        "last_new_entries_count": get_last_new_entries_count(db),
     }
