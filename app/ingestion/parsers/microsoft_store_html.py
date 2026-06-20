@@ -32,7 +32,9 @@ def parse_microsoft_store_html(content: str, *, source_url: str, limit: int = EN
     if not highlights:
         return []
 
-    published = parse_datetime(data.get("lastUpdateDateUtc") or data.get("packageLastUpdateDateUtc"))
+    package_updated = parse_datetime(data.get("packageLastUpdateDateUtc"))
+    store_updated = parse_datetime(data.get("lastUpdateDateUtc"))
+    published = package_updated or store_updated
     if published is None:
         return []
 
@@ -41,7 +43,12 @@ def parse_microsoft_store_html(content: str, *, source_url: str, limit: int = EN
     title = f"{short_title} {version}".strip() if version else f"{short_title} Update"
 
     product_id = (data.get("productId") or "store").strip().lower()
-    external_id = f"{product_id}:{published.date().isoformat()}"
+    if version:
+        external_id = f"{product_id}:{version}"
+    elif package_updated is not None:
+        external_id = f"{product_id}:{package_updated.isoformat()}"
+    else:
+        external_id = f"{product_id}:{published.isoformat()}"
     return [
         ParsedEntry(
             external_id=external_id,
