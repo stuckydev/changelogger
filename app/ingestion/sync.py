@@ -19,22 +19,67 @@ from app.ingestion.pipeline import parse_recent
 logger = logging.getLogger(__name__)
 
 
+def _published_at_on_upsert(
+    *,
+    existing_highlights: str | None,
+    existing_published_at: datetime | None,
+    parsed_published_at: datetime,
+    highlights_json: str,
+) -> datetime:
+    # ponytail: first-seen day when content unchanged; MS Store dates drift without note changes
+    if existing_highlights == highlights_json and existing_published_at is not None:
+        return existing_published_at
+    return parsed_published_at
+
+
+def _find_existing_entry(
+    db: Session,
+    app: AppConfig,
+    *,
+    entry_id: str,
+    highlights_json: str,
+) -> ChangelogEntry | None:
+    existing = db.get(ChangelogEntry, entry_id)
+    if existing is not None or app.parser != "microsoft_store_html":
+        return existing
+    # ponytail: old MS Store ids used republish dates; match stable content instead
+    return db.scalar(
+        select(ChangelogEntry).where(
+            ChangelogEntry.app_slug == app.slug,
+            ChangelogEntry.highlights == highlights_json,
+        )
+    )
+
+
 def upsert_recent(db: Session, app: AppConfig, entries: list[ParsedEntry]) -> int:
     now = datetime.now(timezone.utc).replace(tzinfo=None)
     kept_ids: set[str] = set()
     new_count = 0
 
     for entry in entries:
+        highlights_json = highlights_to_json(entry.highlights)
         entry_id = make_entry_id(app.slug, entry.external_id)
+        existing = _find_existing_entry(db, app, entry_id=entry_id, highlights_json=highlights_json)
+        if existing is not None:
+            entry_id = existing.id
         kept_ids.add(entry_id)
-        existing = db.get(ChangelogEntry, entry_id)
+        is_new_content = existing is None or existing.highlights != highlights_json
+        if app.parser == "microsoft_store_html" and is_new_content:
+            published_at = now
+        else:
+            published_at = _published_at_on_upsert(
+                existing_highlights=existing.highlights if existing else None,
+                existing_published_at=existing.published_at if existing else None,
+                parsed_published_at=entry.published_at,
+                highlights_json=highlights_json,
+            )
         payload = {
             "app_slug": app.slug,
             "external_id": entry.external_id,
             "title": entry.title,
-            "highlights": highlights_to_json(entry.highlights),
+            "highlights": highlights_json,
             "source_url": entry.source_url,
-            "published_at": entry.published_at,
+            "published_at": published_at,
             "fetched_at": now,
         }
         if existing is None:
@@ -129,3 +174,24 @@ async def sync_all(db: Session) -> dict[str, str | None]:
 
     save_last_new_entries_count(db, new_entries_count)
     return results
+
+
+if __name__ == "__main__":
+    from datetime import datetime
+
+    old = datetime(2024, 3, 1)
+    new = datetime(2026, 6, 30)
+    same = '["tray icon"]'
+    assert _published_at_on_upsert(
+        existing_highlights=same,
+        existing_published_at=old,
+        parsed_published_at=new,
+        highlights_json=same,
+    ) == old
+    assert _published_at_on_upsert(
+        existing_highlights=same,
+        existing_published_at=old,
+        parsed_published_at=new,
+        highlights_json='["other"]',
+    ) == new
+    print("ok")

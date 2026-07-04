@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 
@@ -43,12 +44,8 @@ def parse_microsoft_store_html(content: str, *, source_url: str, limit: int = EN
     title = f"{short_title} {version}".strip() if version else f"{short_title} Update"
 
     product_id = (data.get("productId") or "store").strip().lower()
-    if version:
-        external_id = f"{product_id}:{version}"
-    elif package_updated is not None:
-        external_id = f"{product_id}:{package_updated.isoformat()}"
-    else:
-        external_id = f"{product_id}:{published.isoformat()}"
+    notes_key = hashlib.sha256(raw_notes.encode()).hexdigest()[:16]
+    external_id = f"{product_id}:{version}" if version else f"{product_id}:{notes_key}"
     return [
         ParsedEntry(
             external_id=external_id,
