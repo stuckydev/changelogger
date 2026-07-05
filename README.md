@@ -48,3 +48,38 @@ Apps are defined in `config/apps.yaml`:
 Parser types: `rss`, `github_releases`, `todoist_html`, `notion_html`, `cursor_html`, `microsoft_store_html`, `zendesk_articles`.
 
 Restart the app after changes — sources sync on startup.
+
+## Deploy (Arcane)
+
+Deploy on a host running [Arcane](https://getarcane.app) via Git Sync so pushes to `main` are picked up and redeployed automatically.
+
+### One-time setup in Arcane
+
+1. **GitOps** → add repository `https://github.com/stuckydev/changelogger.git` (PAT if private).
+2. **Projects** → **Create Project** → **From Git Repo**:
+   - Branch: `main`
+   - Compose file: `compose.yml`
+   - **Sync entire directory**: on (needs `Dockerfile`, `app/`, etc.)
+   - **Auto Sync**: on (e.g. 5 min interval)
+3. Open the project → set `.env` (not in git):
+
+   ```env
+   TZ=Europe/Berlin
+   PORT=47173
+   UID=1000
+   GID=1000
+   ```
+
+   Use the host user's UID/GID for volume permissions (`id -u` / `id -g`).
+
+4. **Build & Deploy** for the first run. Leave the project running — Arcane only auto-redeploys running projects.
+
+`compose.yml` omits a pinned `image:` tag so Arcane rebuilds the image on each deploy after a git sync.
+
+### Day-to-day
+
+```text
+edit → git commit → git push → Arcane syncs & redeploys (within the sync interval)
+```
+
+Use **Sync** on the project page to pull immediately instead of waiting for the poll.
