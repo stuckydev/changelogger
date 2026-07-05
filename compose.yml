@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: changelogger:latest
+    image: changelogger:26.07.05
     container_name: changelogger
     restart: unless-stopped
     init: true
