@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import sys
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -38,6 +39,7 @@ async def _run_sync_loop() -> None:
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    logger.info("Changelogger started")
     run_migrations(engine)
     ensure_logo_thumbs()
     db = SessionLocal()
@@ -64,7 +66,12 @@ async def lifespan(_app: FastAPI):
 
 
 def create_app() -> FastAPI:
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+        stream=sys.stdout,
+        force=True,
+    )
 
     app = FastAPI(title="Changelogger", lifespan=lifespan)
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
