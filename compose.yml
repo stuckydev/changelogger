@@ -2,8 +2,8 @@ services:
   changelogger:
     build:
       context: .
-      dockerfile: docker/Dockerfile
-    image: changelogger:1.0.0
+      dockerfile: Dockerfile
+    image: changelogger:latest
     container_name: changelogger
     restart: unless-stopped
     init: true
