@@ -33,9 +33,8 @@ def parse_microsoft_store_html(content: str, *, source_url: str, limit: int = EN
     if not highlights:
         return []
 
-    package_updated = parse_datetime(data.get("packageLastUpdateDateUtc"))
-    store_updated = parse_datetime(data.get("lastUpdateDateUtc"))
-    published = package_updated or store_updated
+    # Store UI "Last updated date" ← lastUpdateDateUtc
+    published = parse_datetime(data.get("lastUpdateDateUtc"))
     if published is None:
         return []
 
@@ -67,3 +66,14 @@ def _split_notes(raw: str) -> list[str]:
         if text:
             lines.append(text)
     return lines
+
+
+if __name__ == "__main__":
+    html = (
+        'window.pageMetadata = {"productId":"x","shortTitle":"App","version":"",'
+        '"lastUpdateDateUtc":"2026-07-05T09:30:21Z","notes":["• tray icon"]};\n'
+    )
+    entries = parse_microsoft_store_html(html, source_url="https://example.com")
+    assert len(entries) == 1
+    assert entries[0].published_at.date().isoformat() == "2026-07-05"
+    print("ok")
