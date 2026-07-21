@@ -51,13 +51,6 @@ apps:
     parser: github_releases
     github_simple: true
 
-  - slug: workinghours
-    name: WorkingHours
-    subtitle: Windows
-    category: utilities
-    source_url: https://apps.microsoft.com/detail/9mv51b301wfd?hl=en-US&gl=US
-    parser: microsoft_store_html
-
   - slug: glazewm
     name: GlazeWM
     category: utilities

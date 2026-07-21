@@ -46,11 +46,6 @@ SOURCES = {
         "filename": "cursor.png",
         "source_note": "cursor.com apple-touch-icon",
     },
-    "workinghours": {
-        "url": "https://store-images.s-microsoft.com/image/apps.5651.13799954966451185.8b83ae7c-0e20-4c14-9eb6-0a19cb73a11c.91d4fcdc-942c-43d5-8538-dafe9886ed52",
-        "filename": "workinghours.png",
-        "source_note": "Microsoft Store WorkingHours icon",
-    },
     "glazewm": {
         "url": "https://github.com/glzr-io.png",
         "filename": "glazewm.png",
