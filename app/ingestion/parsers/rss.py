@@ -3,10 +3,9 @@ from __future__ import annotations
 import feedparser
 from bs4 import BeautifulSoup
 
+from app.models.changelog import ParsedEntry
 from app.settings import ENTRIES_PER_APP
 from app.utils.date_utils import parse_datetime_or_now
-from app.models.changelog import ParsedEntry
-from app.ingestion.normalize import normalize_highlights
 
 
 def parse_rss(content: str, *, limit: int = ENTRIES_PER_APP) -> list[ParsedEntry]:
@@ -43,12 +42,10 @@ def _parse_rss_item(item) -> ParsedEntry | None:
         plain = soup.get_text(" ", strip=True)
         raw_lines = [plain] if plain else [title]
 
-    highlights = normalize_highlights(raw_lines)
-
     return ParsedEntry(
         external_id=external_id,
         title=title,
-        highlights=highlights,
+        highlights=raw_lines,
         source_url=link or external_id,
         published_at=published,
     )

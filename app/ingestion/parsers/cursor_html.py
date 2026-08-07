@@ -6,11 +6,9 @@ from urllib.parse import urljoin
 
 from bs4 import BeautifulSoup
 
+from app.models.changelog import ParsedEntry
 from app.settings import ENTRIES_PER_APP
 from app.utils.date_utils import parse_datetime
-from app.models.changelog import pick_recent
-from app.models.changelog import ParsedEntry
-from app.ingestion.normalize import normalize_highlights
 
 CHANGELOG_HREF_RE = re.compile(r"^/changelog/[^/?#]+$")
 NOISE_RE = re.compile(
@@ -30,7 +28,7 @@ def parse_cursor_html(content: str, *, source_url: str, limit: int = ENTRIES_PER
         if entry is not None:
             candidates.append(entry)
 
-    return pick_recent(candidates, limit=limit)
+    return candidates
 
 
 def _parse_article(article, *, base: str) -> ParsedEntry | None:
@@ -55,9 +53,7 @@ def _parse_article(article, *, base: str) -> ParsedEntry | None:
     href = link["href"].strip()
     entry_url = urljoin(base + "/", href.lstrip("/"))
     raw_lines = _extract_lines(article)
-    highlights = normalize_highlights(raw_lines)
-    if not highlights:
-        highlights = [title_text]
+    highlights = raw_lines if raw_lines else [title_text]
 
     external_id = href.strip("/").split("/")[-1]
 

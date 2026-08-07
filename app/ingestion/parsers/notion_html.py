@@ -6,10 +6,8 @@ from urllib.parse import urljoin
 
 from bs4 import BeautifulSoup
 
-from app.settings import ENTRIES_PER_APP
-from app.models.changelog import pick_recent
 from app.models.changelog import ParsedEntry
-from app.ingestion.normalize import normalize_highlights
+from app.settings import ENTRIES_PER_APP
 
 RELEASE_HREF_RE = re.compile(r"^/releases/(\d{4}-\d{2}-\d{2})/?$")
 
@@ -43,20 +41,20 @@ def parse_notion_html(content: str, *, source_url: str, limit: int = ENTRIES_PER
         published = datetime.strptime(date_str, "%Y-%m-%d")
         article = _find_following_article(link)
         raw_lines = _extract_lines(article) if article else [title]
-        highlights = normalize_highlights(raw_lines)
         external_id = f"{date_str}:{title[:80]}"
 
         candidates.append(
             ParsedEntry(
                 external_id=external_id,
                 title=title,
-                highlights=highlights,
+                highlights=raw_lines,
                 source_url=entry_url,
                 published_at=published,
             )
         )
 
-    return pick_recent(candidates, limit=limit)
+    return candidates
+
 
 
 def _extract_lines(article) -> list[str]:

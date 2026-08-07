@@ -6,7 +6,6 @@ from fastapi.templating import Jinja2Templates
 
 from app.settings import APP_PREFIX, STATIC_DIR, TEMPLATES_DIR
 from app.utils.date_utils import format_sync_time, update_freshness
-from app.presentation.highlight import highlight_mtg_terms
 from app.presentation.view_models import (
     days_since,
     format_date,
@@ -56,7 +55,6 @@ templates.env.filters["relative_date"] = format_relative_date
 templates.env.filters["days_since"] = days_since
 templates.env.filters["sync_time"] = format_sync_time
 templates.env.filters["update_freshness"] = update_freshness
-templates.env.filters["mtg_terms"] = highlight_mtg_terms
 
 
 def render_page(request, template_name: str, context: dict):

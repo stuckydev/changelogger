@@ -3,8 +3,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 
+from markupsafe import Markup, escape
+
 from app.catalog.apps import AppConfig
 from app.models.changelog import derive_summary, highlights_from_json
+from app.presentation.highlight import highlight_mtg_terms
 
 
 @dataclass
@@ -14,8 +17,11 @@ class FeedEntryView:
     app_name: str
     app_logo_src: str
     title: str
+    title_html: Markup
     summary: str
+    summary_html: Markup
     highlights: list[str]
+    highlights_html: list[Markup]
     source_url: str
     published_at: datetime
     published_label: str
@@ -86,6 +92,12 @@ def month_key(value: datetime) -> str:
     return value.strftime("%Y-%m")
 
 
+def _display_text(app_slug: str, text: str) -> Markup:
+    if app_slug == "mtgarena":
+        return highlight_mtg_terms(text)
+    return Markup(escape(text))
+
+
 def build_feed_views(entries, apps_by_slug: dict[str, AppConfig]) -> list[FeedEntryView]:
     views: list[FeedEntryView] = []
     for entry in entries:
@@ -93,6 +105,7 @@ def build_feed_views(entries, apps_by_slug: dict[str, AppConfig]) -> list[FeedEn
         if not app:
             continue
         highlights = highlights_from_json(entry.highlights)
+        summary = derive_summary(highlights, title=entry.title)
         views.append(
             FeedEntryView(
                 id=entry.id,
@@ -100,8 +113,11 @@ def build_feed_views(entries, apps_by_slug: dict[str, AppConfig]) -> list[FeedEn
                 app_name=app.display_name,
                 app_logo_src=app.logo_src,
                 title=entry.title,
-                summary=derive_summary(highlights, title=entry.title),
+                title_html=_display_text(entry.app_slug, entry.title),
+                summary=summary,
+                summary_html=_display_text(entry.app_slug, summary),
                 highlights=highlights,
+                highlights_html=[_display_text(entry.app_slug, item) for item in highlights],
                 source_url=entry.source_url,
                 published_at=entry.published_at,
                 published_label=format_date(entry.published_at),

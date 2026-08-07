@@ -5,10 +5,9 @@ import re
 
 from bs4 import BeautifulSoup
 
-from app.settings import ENTRIES_PER_APP, ZENDESK_HIGHLIGHT_LIMIT
-from app.utils.date_utils import parse_datetime_or_now
 from app.models.changelog import ParsedEntry
-from app.ingestion.normalize import normalize_highlights
+from app.settings import ENTRIES_PER_APP
+from app.utils.date_utils import parse_datetime_or_now
 
 PREFERRED_HEADING_RE = re.compile(
     r"\b(general notes|game updates?|notable bug fixes|bug fixes?|gameplay|bugs)\b",
@@ -76,7 +75,7 @@ def _parse_article(article: dict, *, fallback_source_url: str) -> ParsedEntry | 
     )
 
 
-def _extract_highlights(html: str, *, limit: int = ZENDESK_HIGHLIGHT_LIMIT) -> list[str]:
+def _extract_highlights(html: str) -> list[str]:
     soup = BeautifulSoup(html, "html.parser")
     sections = _split_sections(soup)
 
@@ -98,13 +97,10 @@ def _extract_highlights(html: str, *, limit: int = ZENDESK_HIGHLIGHT_LIMIT) -> l
             fallback.extend(filtered)
 
     merged = preferred + secondary + fallback
-    highlights = normalize_highlights(merged, limit=limit)
-    if highlights:
-        return highlights
+    if merged:
+        return merged
 
-    all_lines = _filter_bullets([li.get_text(" ", strip=True) for li in soup.find_all("li")])
-    return normalize_highlights(all_lines, limit=limit)
-
+    return _filter_bullets([li.get_text(" ", strip=True) for li in soup.find_all("li")])
 
 def _split_sections(soup: BeautifulSoup) -> list[tuple[str, list[str]]]:
     sections: list[tuple[str, list[str]]] = []

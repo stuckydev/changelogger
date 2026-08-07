@@ -8,7 +8,6 @@ from typing import Literal
 import yaml
 
 from app.infra.logos import thumb_url_for_slug
-from app.ingestion.parsers.microsoft_store_html import microsoft_store_en_url
 from app.settings import CONFIG_PATH, STATIC_DIR
 
 AppCategory = Literal["saas", "selfhosted", "games", "utilities"]
@@ -27,10 +26,12 @@ ParserType = Literal[
     "todoist_html",
     "notion_html",
     "github_releases",
+    "actual_releases",
     "cursor_html",
-    "microsoft_store_html",
     "zendesk_articles",
 ]
+
+_GITHUB_SOURCE_PARSERS = frozenset({"github_releases", "actual_releases"})
 
 
 def github_releases_url(github_repo: str) -> str:
@@ -62,7 +63,6 @@ class AppConfig:
     subtitle: str | None = None
     github_repo: str | None = None
     logo_url: str | None = None
-    github_simple: bool = False
 
     @property
     def logo_src(self) -> str:
@@ -87,15 +87,13 @@ def load_apps() -> tuple[AppConfig, ...]:
         parser: ParserType = item["parser"]
         github_repo = item.get("github_repo")
         source_url = item.get("source_url")
-        if parser == "github_releases":
+        if parser in _GITHUB_SOURCE_PARSERS:
             if not github_repo and not source_url:
-                raise ValueError(f"App '{item['slug']}': github_releases requires github_repo or source_url")
+                raise ValueError(f"App '{item['slug']}': {parser} requires github_repo or source_url")
             if not source_url and github_repo:
                 source_url = github_releases_url(github_repo)
         elif not source_url:
             raise ValueError(f"App '{item['slug']}': source_url is required")
-        if parser == "microsoft_store_html":
-            source_url = microsoft_store_en_url(source_url)
 
         slug = item["slug"]
         raw_category = item.get("category", "utilities")
@@ -114,7 +112,6 @@ def load_apps() -> tuple[AppConfig, ...]:
                 subtitle=item.get("subtitle"),
                 github_repo=github_repo,
                 logo_url=item.get("logo_url"),
-                github_simple=bool(item.get("github_simple")),
             )
         )
     return tuple(apps)

@@ -8,34 +8,15 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.catalog.apps import AppConfig, load_apps
-from app.settings import ENTRIES_PER_APP
-from app.storage.models import AppSyncStatus, ChangelogEntry
-from app.models.changelog import ParsedEntry, highlights_to_json, make_entry_id
 from app.ingestion.errors import FetchError
-from app.storage.sync_metadata_repo import save_last_new_entries_count
 from app.ingestion.fetcher import fetch_source
 from app.ingestion.pipeline import parse_recent
+from app.models.changelog import ParsedEntry, highlights_to_json, make_entry_id
+from app.settings import ENTRIES_PER_APP
+from app.storage.models import AppSyncStatus, ChangelogEntry
+from app.storage.sync_metadata_repo import save_last_new_entries_count
 
 logger = logging.getLogger(__name__)
-
-
-def _find_existing_entry(
-    db: Session,
-    app: AppConfig,
-    *,
-    entry_id: str,
-    highlights_json: str,
-) -> ChangelogEntry | None:
-    existing = db.get(ChangelogEntry, entry_id)
-    if existing is not None or app.parser != "microsoft_store_html":
-        return existing
-    # ponytail: old MS Store ids used republish dates; match stable content instead
-    return db.scalar(
-        select(ChangelogEntry).where(
-            ChangelogEntry.app_slug == app.slug,
-            ChangelogEntry.highlights == highlights_json,
-        )
-    )
 
 
 def upsert_recent(db: Session, app: AppConfig, entries: list[ParsedEntry]) -> int:
@@ -46,9 +27,7 @@ def upsert_recent(db: Session, app: AppConfig, entries: list[ParsedEntry]) -> in
     for entry in entries:
         highlights_json = highlights_to_json(entry.highlights)
         entry_id = make_entry_id(app.slug, entry.external_id)
-        existing = _find_existing_entry(db, app, entry_id=entry_id, highlights_json=highlights_json)
-        if existing is not None:
-            entry_id = existing.id
+        existing = db.get(ChangelogEntry, entry_id)
         kept_ids.add(entry_id)
         payload = {
             "app_slug": app.slug,

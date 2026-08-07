@@ -5,9 +5,8 @@ from datetime import datetime
 
 from bs4 import BeautifulSoup, NavigableString, Tag
 
-from app.settings import ENTRIES_PER_APP
 from app.models.changelog import ParsedEntry
-from app.ingestion.normalize import normalize_highlights
+from app.settings import ENTRIES_PER_APP
 
 DATE_RE = re.compile(
     r"^(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},\s+\d{4}$"
@@ -66,14 +65,13 @@ def parse_todoist_html(content: str, *, source_url: str, limit: int = ENTRIES_PE
     results: list[ParsedEntry] = []
     for current_date, headline, buffer_lines in sections[:limit]:
         title = headline or _format_entry_date(current_date)
-        highlights = normalize_highlights(_prioritize_lines(buffer_lines))
         external_id = current_date.date().isoformat()
 
         results.append(
             ParsedEntry(
                 external_id=external_id,
                 title=title,
-                highlights=highlights,
+                highlights=_prioritize_lines(buffer_lines),
                 source_url=source_url,
                 published_at=current_date,
             )

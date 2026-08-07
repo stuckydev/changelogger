@@ -1,6 +1,6 @@
 # App configuration — add new apps here.
-# parser: rss | todoist_html | notion_html | github_releases | cursor_html | microsoft_store_html | zendesk_articles
-# github_releases: set github_repo (source_url is derived automatically)
+# parser: rss | todoist_html | notion_html | github_releases | actual_releases | cursor_html | zendesk_articles
+# github_releases / actual_releases: set github_repo (source_url is derived automatically)
 # logo_url: optional, defaults to /static/logos/{slug}.svg
 # category: saas | selfhosted | games | utilities
 
@@ -34,7 +34,7 @@ apps:
     name: Actual Budget
     category: selfhosted
     github_repo: actualbudget/actual
-    parser: github_releases
+    parser: actual_releases
 
   - slug: mtgarena
     name: MTG Arena
@@ -49,21 +49,18 @@ apps:
     category: utilities
     github_repo: ChrisTitusTech/winutil
     parser: github_releases
-    github_simple: true
 
   - slug: glazewm
     name: GlazeWM
     category: utilities
     github_repo: glzr-io/glazewm
     parser: github_releases
-    github_simple: true
 
   - slug: powertoys
     name: PowerToys
     category: utilities
     github_repo: microsoft/PowerToys
     parser: github_releases
-    github_simple: true
 
   - slug: jetkvm
     name: JetKVM

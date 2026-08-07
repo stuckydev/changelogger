@@ -4,9 +4,10 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from app.catalog.apps import AppConfig
-from app.utils.date_utils import parse_datetime
 from app.ingestion.errors import FetchError
+from app.ingestion.github_tags import tag_lookup_keys
 from app.infra.http import get_http_client
+from app.utils.date_utils import parse_datetime
 
 
 @dataclass(frozen=True)
@@ -16,8 +17,6 @@ class GitHubReleaseMetadata:
 
 
 def _prerelease_lookup_keys(tag_name: str) -> set[str]:
-    from app.ingestion.parsers.github_releases import tag_lookup_keys
-
     keys = set(tag_lookup_keys(tag_name))
     if "/" in tag_name:
         keys.update(tag_lookup_keys(tag_name.rsplit("/", 1)[-1]))
@@ -33,8 +32,6 @@ async def fetch_source(app: AppConfig) -> str:
 
 
 async def fetch_github_release_metadata(github_repo: str) -> GitHubReleaseMetadata:
-    from app.ingestion.parsers.github_releases import tag_lookup_keys
-
     client = await get_http_client()
     response = await client.get(
         f"https://api.github.com/repos/{github_repo}/releases",
@@ -63,7 +60,3 @@ async def fetch_github_release_metadata(github_repo: str) -> GitHubReleaseMetada
                 dates[key] = published
 
     return GitHubReleaseMetadata(dates=dates, prerelease_keys=frozenset(prerelease_keys))
-
-
-async def fetch_github_release_dates(github_repo: str) -> dict[str, datetime]:
-    return (await fetch_github_release_metadata(github_repo)).dates
