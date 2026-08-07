@@ -1,20 +1,18 @@
 from __future__ import annotations
 
-from app.catalog.apps import AppConfig
+from app.catalog.apps import GITHUB_SOURCE_PARSERS, AppConfig
 from app.ingestion.errors import FetchError
 from app.ingestion.fetcher import fetch_github_release_metadata
+from app.ingestion.github_atom import apply_github_release_dates, is_github_prerelease_entry
 from app.ingestion.normalize import finalize_entry
-from app.ingestion.parsers.github_releases import apply_github_release_dates, is_github_prerelease_entry
 from app.ingestion.registry import parse_with_registry
 from app.models.changelog import ParsedEntry, pick_recent
 from app.settings import HIGHLIGHT_LIMIT, ZENDESK_HIGHLIGHT_LIMIT
 
-_GITHUB_PARSERS = frozenset({"github_releases", "actual_releases"})
-
 
 async def parse_recent(app: AppConfig, content: str) -> list[ParsedEntry]:
     github_metadata = None
-    if app.parser in _GITHUB_PARSERS and app.github_repo:
+    if app.parser in GITHUB_SOURCE_PARSERS and app.github_repo:
         github_metadata = await fetch_github_release_metadata(app.github_repo)
 
     try:

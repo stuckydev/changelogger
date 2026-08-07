@@ -5,7 +5,8 @@ import re
 import feedparser
 from bs4 import BeautifulSoup
 
-from app.ingestion.parsers.github_releases import (
+from app.ingestion.github_atom import (
+    BOILERPLATE_RE,
     entry_html,
     entry_published_at,
     is_github_prerelease_item,
@@ -15,10 +16,6 @@ from app.models.changelog import ParsedEntry
 from app.settings import ENTRIES_PER_APP
 
 RELEASE_TITLE_PREFIX = re.compile(r"^(Pre-Release|Release)\s+", re.I)
-BOILERPLATE_RE = re.compile(
-    r"(microsoft store updates can sometimes lag|download|flathub|view release notes|please note:)",
-    re.I,
-)
 USELESS_HIGHLIGHT_RE = re.compile(
     r"see the full release notes|view release notes|please note:",
     re.I,

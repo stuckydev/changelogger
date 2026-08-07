@@ -11,9 +11,11 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from app.catalog.apps import AppConfig
-from app.ingestion.github_tags import tag_lookup_keys
+from app.ingestion.github_atom import tag_lookup_keys
 from app.ingestion.normalize import finalize_entry, normalize_highlights
+from app.ingestion.parsers.actual_releases import parse_actual_releases
 from app.ingestion.parsers.github_releases import parse_github_releases
+from app.ingestion.parsers.notion_html import parse_notion_html
 from app.ingestion.parsers.rss import parse_rss
 from app.ingestion.parsers.zendesk_articles import parse_zendesk_articles
 from app.ingestion.pipeline import parse_recent
@@ -66,6 +68,25 @@ ZENDESK = """{
   ]
 }"""
 
+ACTUAL_ATOM = """<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <entry>
+    <id>tag:github.com,2008:Repository/1/v24.10.0</id>
+    <title>Release v24.10.0</title>
+    <updated>2024-10-01T12:00:00Z</updated>
+    <link href="https://github.com/actualbudget/actual/releases/tag/v24.10.0"/>
+    <content type="html">&lt;h2&gt;Changes&lt;/h2&gt;&lt;ul&gt;&lt;li&gt;Improved reconciliation for shared accounts&lt;/li&gt;&lt;/ul&gt;</content>
+  </entry>
+</feed>
+"""
+
+NOTION_HTML = """
+<html><body>
+  <a href="/releases/2024-06-01/"><h2>Databases everywhere</h2></a>
+  <article><p>A long enough paragraph about databases that should become a highlight.</p></article>
+</body></html>
+"""
+
 
 def _check_tags() -> None:
     keys = tag_lookup_keys("v1.2.3")
@@ -89,6 +110,20 @@ def _check_zendesk() -> None:
     entries = parse_zendesk_articles(ZENDESK, source_url="https://example.com", limit=5)
     assert len(entries) == 1
     assert entries[0].highlights == ["Challenge queue fix"]
+
+
+def _check_actual() -> None:
+    entries = asyncio.run(parse_actual_releases(ACTUAL_ATOM, limit=5))
+    assert len(entries) == 1, entries
+    assert entries[0].title == "Improved reconciliation for shared accounts"
+    assert "Improved reconciliation for shared accounts" in entries[0].highlights
+
+
+def _check_notion() -> None:
+    entries = parse_notion_html(NOTION_HTML, source_url="https://www.notion.com/releases", limit=5)
+    assert len(entries) == 1
+    assert entries[0].title == "Databases everywhere"
+    assert any("databases" in line.lower() for line in entries[0].highlights)
 
 
 def _check_finalize_owns_normalize() -> None:
@@ -146,6 +181,8 @@ def main() -> None:
     _check_github()
     _check_rss()
     _check_zendesk()
+    _check_actual()
+    _check_notion()
     _check_finalize_owns_normalize()
     _check_pipeline()
     _check_mtg_view()

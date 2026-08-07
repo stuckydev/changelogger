@@ -5,7 +5,7 @@ from datetime import datetime
 
 from app.catalog.apps import AppConfig
 from app.ingestion.errors import FetchError
-from app.ingestion.github_tags import tag_lookup_keys
+from app.ingestion.github_atom import tag_lookup_keys
 from app.infra.http import get_http_client
 from app.utils.date_utils import parse_datetime
 

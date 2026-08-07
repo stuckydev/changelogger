@@ -31,7 +31,7 @@ ParserType = Literal[
     "zendesk_articles",
 ]
 
-_GITHUB_SOURCE_PARSERS = frozenset({"github_releases", "actual_releases"})
+GITHUB_SOURCE_PARSERS = frozenset({"github_releases", "actual_releases"})
 
 
 def github_releases_url(github_repo: str) -> str:
@@ -87,7 +87,7 @@ def load_apps() -> tuple[AppConfig, ...]:
         parser: ParserType = item["parser"]
         github_repo = item.get("github_repo")
         source_url = item.get("source_url")
-        if parser in _GITHUB_SOURCE_PARSERS:
+        if parser in GITHUB_SOURCE_PARSERS:
             if not github_repo and not source_url:
                 raise ValueError(f"App '{item['slug']}': {parser} requires github_repo or source_url")
             if not source_url and github_repo:
