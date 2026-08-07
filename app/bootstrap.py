@@ -42,26 +42,33 @@ async def lifespan(_app: FastAPI):
     logger.info("Changelogger started")
     run_migrations(engine)
     ensure_logo_thumbs()
-    db = SessionLocal()
-    try:
-        results = await sync_all(db)
-        logger.info(
-            "Initial sync finished: %d ok, %d failed",
-            sum(v is None for v in results.values()),
-            sum(v is not None for v in results.values()),
-        )
-    finally:
-        db.close()
 
+    async def _initial_sync() -> None:
+        db = SessionLocal()
+        try:
+            results = await sync_all(db)
+            logger.info(
+                "Initial sync finished: %d ok, %d failed",
+                sum(v is None for v in results.values()),
+                sum(v is not None for v in results.values()),
+            )
+        except Exception:
+            logger.exception("Initial sync failed")
+        finally:
+            db.close()
+
+    # Serve immediately; first sync fills the cache in the background.
+    initial_sync_task = asyncio.create_task(_initial_sync())
     sync_task = asyncio.create_task(_run_sync_loop())
     try:
         yield
     finally:
-        sync_task.cancel()
-        try:
-            await sync_task
-        except asyncio.CancelledError:
-            pass
+        for task in (initial_sync_task, sync_task):
+            task.cancel()
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
         await close_http_client()
 
 

@@ -8,11 +8,15 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.catalog.apps import all_slugs
+from app.presentation.feed_context import (
+    build_page_context,
+    feed_template_context,
+    sidebar_template_context,
+)
+from app.presentation.jinja import render_page, render_template
 from app.settings import COOKIE_MUTED_APPS, COOKIE_THEME
 from app.storage.db import get_db
 from app.user_prefs.cookies import cookie_kwargs
-from app.presentation.feed_context import build_feed_context, build_sidebar_context
-from app.presentation.jinja import render_page, render_template
 
 router = APIRouter(prefix="/api")
 
@@ -24,16 +28,13 @@ class PreferencesPayload(BaseModel):
 
 @router.get("/feed", response_class=HTMLResponse)
 def feed_partial(request: Request, db: Annotated[Session, Depends(get_db)]):
-    return render_page(
-        request,
-        "partials/feed.html",
-        build_feed_context(db, request),
-    )
+    page = build_page_context(db, request)
+    return render_page(request, "partials/feed.html", feed_template_context(page))
 
 
 @router.get("/sidebar")
 def sidebar_partial(request: Request, db: Annotated[Session, Depends(get_db)]):
-    ctx = build_sidebar_context(db, request)
+    ctx = sidebar_template_context(build_page_context(db, request))
     return JSONResponse(
         {
             "apps_html": render_template("partials/sidebar_apps.html", ctx),

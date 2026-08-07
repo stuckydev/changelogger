@@ -1,19 +1,8 @@
 from __future__ import annotations
 
 from app.catalog.apps import all_slugs
-from app.settings import COOKIE_MUTED_APPS, COOKIE_THEME
 
 COOKIE_MAX_AGE = 60 * 60 * 24 * 365
-
-__all__ = [
-    "COOKIE_MAX_AGE",
-    "COOKIE_MUTED_APPS",
-    "COOKIE_THEME",
-    "cookie_kwargs",
-    "parse_muted_apps",
-    "should_persist_muted",
-    "visible_apps_from_muted",
-]
 
 
 def cookie_kwargs(max_age: int = COOKIE_MAX_AGE) -> dict:

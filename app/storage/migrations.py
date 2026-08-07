@@ -27,6 +27,7 @@ def _ensure_changelog_entries_schema(engine: Engine) -> None:
 
     columns = {column["name"] for column in inspector.get_columns("changelog_entries")}
     if columns != _changelog_entry_columns():
+        # Personal SQLite cache: schema drift wipes entries; next sync repopulates.
         with engine.begin() as conn:
             conn.execute(text("DROP TABLE IF EXISTS changelog_entries"))
 
