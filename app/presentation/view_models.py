@@ -6,8 +6,8 @@ from datetime import datetime
 from markupsafe import Markup, escape
 
 from app.catalog.apps import AppConfig
-from app.models.changelog import derive_summary, highlights_from_json
-from app.presentation.highlight import highlight_mtg_terms
+from app.models.changelog import highlights_from_json
+from app.presentation.highlight import highlight_terms
 
 
 @dataclass
@@ -18,8 +18,6 @@ class FeedEntryView:
     app_logo_src: str
     title: str
     title_html: Markup
-    summary: str
-    summary_html: Markup
     highlights: list[str]
     highlights_html: list[Markup]
     source_url: str
@@ -38,6 +36,22 @@ class PageContext:
     sync_errors: dict[str, str]
     has_sync_data: bool = False
     last_new_entries_count: int | None = None
+
+    def feed_template_context(self) -> dict:
+        return {
+            "entries": self.entries,
+            "has_sync_data": self.has_sync_data,
+        }
+
+    def sidebar_template_context(self) -> dict:
+        return {
+            "apps": self.apps,
+            "muted_apps": self.muted_apps,
+            "app_last_updates": self.app_last_updates,
+            "sync_errors": self.sync_errors,
+            "last_sync": self.last_sync,
+            "last_new_entries_count": self.last_new_entries_count,
+        }
 
 
 GERMAN_MONTHS = (
@@ -92,9 +106,9 @@ def month_key(value: datetime) -> str:
     return value.strftime("%Y-%m")
 
 
-def _display_text(app_slug: str, text: str) -> Markup:
-    if app_slug == "mtgarena":
-        return highlight_mtg_terms(text)
+def _display_text(app: AppConfig, text: str) -> Markup:
+    if app.highlight_terms:
+        return highlight_terms(text, app.highlight_terms)
     return Markup(escape(text))
 
 
@@ -105,7 +119,6 @@ def build_feed_views(entries, apps_by_slug: dict[str, AppConfig]) -> list[FeedEn
         if not app:
             continue
         highlights = highlights_from_json(entry.highlights)
-        summary = derive_summary(highlights, title=entry.title)
         views.append(
             FeedEntryView(
                 id=entry.id,
@@ -113,11 +126,9 @@ def build_feed_views(entries, apps_by_slug: dict[str, AppConfig]) -> list[FeedEn
                 app_name=app.display_name,
                 app_logo_src=app.logo_src,
                 title=entry.title,
-                title_html=_display_text(entry.app_slug, entry.title),
-                summary=summary,
-                summary_html=_display_text(entry.app_slug, summary),
+                title_html=_display_text(app, entry.title),
                 highlights=highlights,
-                highlights_html=[_display_text(entry.app_slug, item) for item in highlights],
+                highlights_html=[_display_text(app, item) for item in highlights],
                 source_url=entry.source_url,
                 published_at=entry.published_at,
                 published_label=format_date(entry.published_at),

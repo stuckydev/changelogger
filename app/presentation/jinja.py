@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from pathlib import Path
 
 from fastapi.templating import Jinja2Templates
 
@@ -17,6 +18,7 @@ from app.presentation.view_models import (
 
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
+_CSS_FILES = ("tokens.css", "shell.css", "feed.css")
 _css_inline_cache: tuple[str, str] | None = None
 
 
@@ -27,22 +29,24 @@ def _minify_css(css: str) -> str:
     return css.strip()
 
 
+def _css_paths() -> list[Path]:
+    return [STATIC_DIR / name for name in _CSS_FILES]
+
+
 def static_asset_version() -> str:
-    css_path = STATIC_DIR / "app.css"
-    if css_path.exists():
-        return str(int(css_path.stat().st_mtime))
-    return "1"
+    mtimes = [path.stat().st_mtime for path in _css_paths() if path.exists()]
+    if not mtimes:
+        return "1"
+    return str(int(max(mtimes)))
 
 
 def inline_app_styles() -> str:
     global _css_inline_cache
-    css_path = STATIC_DIR / "app.css"
-    if not css_path.exists():
-        return ""
     version = static_asset_version()
     if _css_inline_cache and _css_inline_cache[0] == version:
         return _css_inline_cache[1]
-    css = _minify_css(css_path.read_text(encoding="utf-8"))
+    parts = [path.read_text(encoding="utf-8") for path in _css_paths() if path.exists()]
+    css = _minify_css("\n".join(parts))
     _css_inline_cache = (version, css)
     return css
 

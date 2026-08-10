@@ -20,21 +20,26 @@ from app.utils.date_utils import seconds_until_next_hour
 logger = logging.getLogger(__name__)
 
 
+async def _sync_once(label: str) -> None:
+    db = SessionLocal()
+    try:
+        results = await sync_all(db)
+        logger.info(
+            "%s finished: %d ok, %d failed",
+            label,
+            sum(v is None for v in results.values()),
+            sum(v is not None for v in results.values()),
+        )
+    except Exception:
+        logger.exception("%s failed", label)
+    finally:
+        db.close()
+
+
 async def _run_sync_loop() -> None:
     while True:
         await asyncio.sleep(seconds_until_next_hour())
-        db = SessionLocal()
-        try:
-            results = await sync_all(db)
-            logger.info(
-                "Background sync finished: %d ok, %d failed",
-                sum(v is None for v in results.values()),
-                sum(v is not None for v in results.values()),
-            )
-        except Exception:
-            logger.exception("Background sync failed")
-        finally:
-            db.close()
+        await _sync_once("Background sync")
 
 
 @asynccontextmanager
@@ -43,22 +48,8 @@ async def lifespan(_app: FastAPI):
     run_migrations(engine)
     ensure_logo_thumbs()
 
-    async def _initial_sync() -> None:
-        db = SessionLocal()
-        try:
-            results = await sync_all(db)
-            logger.info(
-                "Initial sync finished: %d ok, %d failed",
-                sum(v is None for v in results.values()),
-                sum(v is not None for v in results.values()),
-            )
-        except Exception:
-            logger.exception("Initial sync failed")
-        finally:
-            db.close()
-
     # Serve immediately; first sync fills the cache in the background.
-    initial_sync_task = asyncio.create_task(_initial_sync())
+    initial_sync_task = asyncio.create_task(_sync_once("Initial sync"))
     sync_task = asyncio.create_task(_run_sync_loop())
     try:
         yield

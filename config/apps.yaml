@@ -1,6 +1,8 @@
 # App configuration — add new apps here.
-# parser: rss | todoist_html | notion_html | github_releases | actual_releases | cursor_html | zendesk_articles
-# github_releases / actual_releases: set github_repo (source_url is derived automatically)
+# parser: rss | todoist_html | notion_html | github_releases | cursor_html | zendesk_articles
+# github_releases: set github_repo (source_url is derived automatically)
+# enrich: optional post-parse enricher (actual_blog)
+# highlight_limit / highlight_terms: optional display policy
 # logo_url: optional, defaults to /static/logos/{slug}.svg
 # category: saas | selfhosted | games | utilities
 
@@ -34,7 +36,8 @@ apps:
     name: Actual Budget
     category: selfhosted
     github_repo: actualbudget/actual
-    parser: actual_releases
+    parser: github_releases
+    enrich: actual_blog
 
   - slug: mtgarena
     name: MTG Arena
@@ -42,6 +45,13 @@ apps:
     category: games
     source_url: https://mtgarena-support.wizards.com/api/v2/help_center/en-us/sections/4402585813268/articles.json?per_page=5&sort_by=created_at&sort_order=desc
     parser: zendesk_articles
+    highlight_limit: 18
+    highlight_terms:
+      - Challenge
+      - Friends
+      - Draft
+      - Sealed
+      - Limited
 
   - slug: winutil
     name: WinUtil

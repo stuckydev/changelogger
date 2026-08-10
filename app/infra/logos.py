@@ -3,6 +3,8 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
+from PIL import Image
+
 from app.settings import STATIC_DIR
 
 logger = logging.getLogger(__name__)
@@ -24,8 +26,6 @@ def thumb_url_for_slug(slug: str) -> str | None:
 
 
 def _write_thumb(source: Path, target: Path) -> None:
-    from PIL import Image
-
     with Image.open(source) as image:
         image = image.convert("RGBA")
         image.thumbnail((THUMB_SIZE, THUMB_SIZE), Image.Resampling.LANCZOS)

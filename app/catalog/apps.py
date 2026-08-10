@@ -8,9 +8,10 @@ from typing import Literal
 import yaml
 
 from app.infra.logos import thumb_url_for_slug
-from app.settings import CONFIG_PATH, STATIC_DIR
+from app.settings import CONFIG_PATH, HIGHLIGHT_LIMIT, STATIC_DIR
 
 AppCategory = Literal["saas", "selfhosted", "games", "utilities"]
+EnrichType = Literal["actual_blog"]
 
 CATEGORY_LABELS: dict[AppCategory, str] = {
     "saas": "SaaS",
@@ -26,12 +27,9 @@ ParserType = Literal[
     "todoist_html",
     "notion_html",
     "github_releases",
-    "actual_releases",
     "cursor_html",
     "zendesk_articles",
 ]
-
-GITHUB_SOURCE_PARSERS = frozenset({"github_releases", "actual_releases"})
 
 
 def github_releases_url(github_repo: str) -> str:
@@ -63,6 +61,9 @@ class AppConfig:
     subtitle: str | None = None
     github_repo: str | None = None
     logo_url: str | None = None
+    enrich: EnrichType | None = None
+    highlight_limit: int = HIGHLIGHT_LIMIT
+    highlight_terms: tuple[str, ...] = ()
 
     @property
     def logo_src(self) -> str:
@@ -87,9 +88,13 @@ def load_apps() -> tuple[AppConfig, ...]:
         parser: ParserType = item["parser"]
         github_repo = item.get("github_repo")
         source_url = item.get("source_url")
-        if parser in GITHUB_SOURCE_PARSERS:
+        enrich = item.get("enrich")
+        if enrich is not None and enrich not in {"actual_blog"}:
+            raise ValueError(f"App '{item['slug']}': unknown enrich '{enrich}'")
+
+        if parser == "github_releases":
             if not github_repo and not source_url:
-                raise ValueError(f"App '{item['slug']}': {parser} requires github_repo or source_url")
+                raise ValueError(f"App '{item['slug']}': github_releases requires github_repo or source_url")
             if not source_url and github_repo:
                 source_url = github_releases_url(github_repo)
         elif not source_url:
@@ -102,6 +107,7 @@ def load_apps() -> tuple[AppConfig, ...]:
                 f"App '{slug}': category must be one of {', '.join(CATEGORY_ORDER)}, got '{raw_category}'"
             )
         category: AppCategory = raw_category
+        terms = item.get("highlight_terms") or []
         apps.append(
             AppConfig(
                 slug=slug,
@@ -112,6 +118,9 @@ def load_apps() -> tuple[AppConfig, ...]:
                 subtitle=item.get("subtitle"),
                 github_repo=github_repo,
                 logo_url=item.get("logo_url"),
+                enrich=enrich,
+                highlight_limit=int(item.get("highlight_limit", HIGHLIGHT_LIMIT)),
+                highlight_terms=tuple(str(term) for term in terms),
             )
         )
     return tuple(apps)

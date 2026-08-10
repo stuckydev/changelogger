@@ -2,18 +2,15 @@ from __future__ import annotations
 
 import re
 
-import feedparser
 from bs4 import BeautifulSoup
 
 from app.ingestion.github_atom import (
     BOILERPLATE_RE,
     entry_html,
     entry_published_at,
-    is_github_prerelease_item,
 )
 from app.infra.http import get_http_client
 from app.models.changelog import ParsedEntry
-from app.settings import ENTRIES_PER_APP
 
 RELEASE_TITLE_PREFIX = re.compile(r"^(Pre-Release|Release)\s+", re.I)
 USELESS_HIGHLIGHT_RE = re.compile(
@@ -25,32 +22,7 @@ BLOG_PATH_RE = re.compile(r"actualbudget\.org/blog/release-", re.I)
 VERSION_ONLY_RE = re.compile(r"^(?:release\s+)?v?[\d.]+$", re.I)
 
 
-async def parse_actual_releases(
-    content: str,
-    *,
-    limit: int = ENTRIES_PER_APP,
-    prerelease_keys: frozenset[str] | None = None,
-) -> list[ParsedEntry]:
-    feed = feedparser.parse(content)
-    if not feed.entries:
-        return []
-
-    results: list[ParsedEntry] = []
-    for item in feed.entries:
-        if is_github_prerelease_item(item, prerelease_keys):
-            continue
-        try:
-            entry = await _parse_release_item(item)
-        except ValueError:
-            continue
-        if entry is not None:
-            results.append(entry)
-        if len(results) >= limit:
-            break
-    return results
-
-
-async def _parse_release_item(item) -> ParsedEntry | None:
+async def parse_actual_release_item(item) -> ParsedEntry | None:
     raw_title = (item.get("title") or "Release").strip()
     version_title = RELEASE_TITLE_PREFIX.sub("", raw_title).strip() or raw_title
     link = (item.get("link") or "").strip()

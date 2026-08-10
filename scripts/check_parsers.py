@@ -13,7 +13,7 @@ sys.path.insert(0, str(ROOT))
 from app.catalog.apps import AppConfig
 from app.ingestion.github_atom import tag_lookup_keys
 from app.ingestion.normalize import finalize_entry, normalize_highlights
-from app.ingestion.parsers.actual_releases import parse_actual_releases
+from app.ingestion.parsers.actual_blog import parse_actual_release_item
 from app.ingestion.parsers.github_releases import parse_github_releases
 from app.ingestion.parsers.notion_html import parse_notion_html
 from app.ingestion.parsers.rss import parse_rss
@@ -113,7 +113,9 @@ def _check_zendesk() -> None:
 
 
 def _check_actual() -> None:
-    entries = asyncio.run(parse_actual_releases(ACTUAL_ATOM, limit=5))
+    entries = asyncio.run(
+        parse_github_releases(ACTUAL_ATOM, limit=5, parse_item=parse_actual_release_item)
+    )
     assert len(entries) == 1, entries
     assert entries[0].title == "Improved reconciliation for shared accounts"
     assert "Improved reconciliation for shared accounts" in entries[0].highlights
@@ -169,6 +171,7 @@ def _check_mtg_view() -> None:
         source_url="https://example.com",
         parser="zendesk_articles",
         category="games",
+        highlight_terms=("Challenge", "Friends", "Draft", "Sealed", "Limited"),
     )
     views = build_feed_views([Row()], {"mtgarena": app})
     assert len(views) == 1

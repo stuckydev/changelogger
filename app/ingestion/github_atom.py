@@ -86,14 +86,6 @@ def is_github_prerelease_item(item, prerelease_keys: frozenset[str] | None) -> b
     return any(key in prerelease_keys for key in release_item_lookup_keys(item))
 
 
-def is_github_prerelease_entry(entry: ParsedEntry, prerelease_keys: frozenset[str] | None) -> bool:
-    if is_likely_github_prerelease(entry.title, entry.source_url):
-        return True
-    if not prerelease_keys:
-        return False
-    return any(key in prerelease_keys for key in release_tag_lookup_keys(entry.title))
-
-
 def apply_github_release_dates(
     entries: list[ParsedEntry],
     date_by_tag: dict[str, datetime],

@@ -1,7 +1,6 @@
 (function () {
   const APP_PREFIX = "clg";
   const COOKIE_MUTED = `${APP_PREFIX}_muted_apps`;
-  const COOKIE_THEME = `${APP_PREFIX}_theme`;
   const SIDEBAR_POLL_MS = 60_000;
 
   const filterList = document.getElementById("app-filter-list");
@@ -274,7 +273,6 @@
 
   function applyTheme(theme) {
     document.documentElement.dataset.theme = theme;
-    document.cookie = `${COOKIE_THEME}=${theme};path=/;max-age=31536000;SameSite=Lax`;
     const meta = document.getElementById("meta-theme-color");
     if (meta) meta.content = THEME_COLORS[theme] || THEME_COLORS.dark;
   }

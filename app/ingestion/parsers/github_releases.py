@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Awaitable, Callable
+
 import feedparser
 from bs4 import BeautifulSoup
 
@@ -12,12 +14,15 @@ from app.ingestion.github_atom import (
 from app.models.changelog import ParsedEntry
 from app.settings import ENTRIES_PER_APP
 
+ItemParser = Callable[[object], Awaitable[ParsedEntry | None]]
+
 
 async def parse_github_releases(
     content: str,
     *,
     limit: int = ENTRIES_PER_APP,
     prerelease_keys: frozenset[str] | None = None,
+    parse_item: ItemParser | None = None,
 ) -> list[ParsedEntry]:
     feed = feedparser.parse(content)
     if not feed.entries:
@@ -27,7 +32,13 @@ async def parse_github_releases(
     for item in feed.entries:
         if is_github_prerelease_item(item, prerelease_keys):
             continue
-        entry = _parse_release_item(item)
+        if parse_item is not None:
+            try:
+                entry = await parse_item(item)
+            except ValueError:
+                continue
+        else:
+            entry = _parse_release_item(item)
         if entry is not None:
             results.append(entry)
         if len(results) >= limit:

@@ -11,10 +11,6 @@ from app.settings import ENTRIES_PER_APP
 from app.utils.date_utils import parse_datetime
 
 CHANGELOG_HREF_RE = re.compile(r"^/changelog/[^/?#]+$")
-NOISE_RE = re.compile(
-    r"(watch it on youtube|see the announcement|learn more about|read the docs|join the waitlist)",
-    re.I,
-)
 CHANGELOG_HEADER_RE = re.compile(r"^\d+(?:\.\d+)*\s+[A-Za-z]{3}\s+\d{1,2},\s+\d{4}\s·\sChangelog$")
 
 
@@ -27,6 +23,8 @@ def parse_cursor_html(content: str, *, source_url: str, limit: int = ENTRIES_PER
         entry = _parse_article(article, base=base)
         if entry is not None:
             candidates.append(entry)
+        if len(candidates) >= limit:
+            break
 
     return candidates
 
@@ -94,7 +92,6 @@ def _is_noise(text: str) -> bool:
     lowered = text.lower()
     return (
         lowered in {"play", "changelog"}
-        or bool(NOISE_RE.search(text))
         or bool(CHANGELOG_HEADER_RE.match(text))
         or (lowered.endswith("· changelog") and len(text) < 80)
     )

@@ -13,8 +13,8 @@ from app.ingestion.fetcher import fetch_source
 from app.ingestion.pipeline import parse_recent
 from app.models.changelog import ParsedEntry, highlights_to_json, make_entry_id
 from app.settings import ENTRIES_PER_APP
+from app.storage.entries_repo import save_last_new_entries_count
 from app.storage.models import AppSyncStatus, ChangelogEntry
-from app.storage.sync_metadata_repo import save_last_new_entries_count
 
 logger = logging.getLogger(__name__)
 
@@ -129,4 +129,5 @@ async def sync_all(db: Session) -> dict[str, str | None]:
             results[app.slug] = "Could not persist sync status"
 
     save_last_new_entries_count(db, new_entries_count)
+    db.commit()
     return results

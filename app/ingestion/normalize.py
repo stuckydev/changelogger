@@ -9,7 +9,8 @@ NOISE_RE = re.compile(
     r"(update sponsors readme|chore:\s*update sponsors|github-actions\[bot\]|"
     r"please watch it on youtube|see the announcement on x|learn more about|"
     r"view release notes|latest versions at the time of publishing|"
-    r"see the full release notes for details)",
+    r"see the full release notes|microsoft store updates can sometimes lag|"
+    r"please note:)",
     re.I,
 )
 

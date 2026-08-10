@@ -1,6 +1,7 @@
 from app.catalog.apps import (
     AppCategory,
     AppConfig,
+    EnrichType,
     ParserType,
     all_slugs,
     apps_by_slug,
@@ -11,6 +12,7 @@ from app.catalog.apps import (
 __all__ = [
     "AppCategory",
     "AppConfig",
+    "EnrichType",
     "ParserType",
     "all_slugs",
     "apps_by_slug",

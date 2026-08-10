@@ -5,7 +5,9 @@ from datetime import datetime
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.storage.models import ChangelogEntry
+from app.storage.models import AppSyncStatus, ChangelogEntry, SyncMetadata
+
+LAST_NEW_ENTRIES_KEY = "last_new_entries_count"
 
 
 def list_entries(
@@ -38,3 +40,21 @@ def latest_published_per_app(db: Session) -> dict[str, datetime]:
         )
     )
     return {slug: published_at for slug, published_at in rows.all()}
+
+
+def sync_errors_by_slug(db: Session) -> dict[str, str]:
+    rows = db.scalars(select(AppSyncStatus).where(AppSyncStatus.last_error.isnot(None)))
+    return {row.app_slug: row.last_error for row in rows if row.last_error}
+
+
+def save_last_new_entries_count(db: Session, count: int) -> None:
+    row = db.get(SyncMetadata, LAST_NEW_ENTRIES_KEY)
+    if row is None:
+        db.add(SyncMetadata(key=LAST_NEW_ENTRIES_KEY, int_value=count))
+    else:
+        row.int_value = count
+
+
+def get_last_new_entries_count(db: Session) -> int | None:
+    row = db.get(SyncMetadata, LAST_NEW_ENTRIES_KEY)
+    return row.int_value if row else None

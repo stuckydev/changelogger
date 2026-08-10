@@ -52,6 +52,8 @@ def parse_notion_html(content: str, *, source_url: str, limit: int = ENTRIES_PER
                 published_at=published,
             )
         )
+        if len(candidates) >= limit:
+            break
 
     return candidates
 

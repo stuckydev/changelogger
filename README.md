@@ -45,9 +45,9 @@ Apps are defined in `config/apps.yaml`:
     parser: github_releases
 ```
 
-Parser types: `rss`, `github_releases`, `actual_releases`, `todoist_html`, `notion_html`, `cursor_html`, `zendesk_articles`.
+Parser types: `rss`, `github_releases`, `todoist_html`, `notion_html`, `cursor_html`, `zendesk_articles`.
 
-Use `actual_releases` for Actual Budget (GitHub atom + blog enrichment). Use `github_releases` for plain GitHub release feeds.
+For Actual Budget use `parser: github_releases` with `enrich: actual_blog`. Optional per-app policy: `highlight_limit`, `highlight_terms`.
 
 Restart the app after changes — sources sync on startup.
 

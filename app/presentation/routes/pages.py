@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session
 
-from app.presentation.feed_context import build_page_context, sidebar_template_context
+from app.presentation.feed_context import build_page_context
 from app.presentation.jinja import render_page
 from app.settings import COOKIE_MUTED_APPS
 from app.storage.db import get_db
@@ -19,7 +19,7 @@ router = APIRouter()
 def index(request: Request, db: Annotated[Session, Depends(get_db)]):
     raw_cookie = request.cookies.get(COOKIE_MUTED_APPS)
     page = build_page_context(db, request)
-    response = render_page(request, "index.html", {"page": page, **sidebar_template_context(page)})
+    response = render_page(request, "index.html", {"page": page, **page.sidebar_template_context()})
     if should_persist_muted(raw_cookie, page.muted_apps):
         response.set_cookie(
             COOKIE_MUTED_APPS,

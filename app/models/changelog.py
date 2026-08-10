@@ -38,12 +38,6 @@ def highlights_from_json(raw: str) -> list[str]:
     return []
 
 
-def derive_summary(highlights: list[str], *, title: str = "") -> str:
-    if highlights:
-        return highlights[0]
-    return title.strip()
-
-
 def pick_recent(entries: list[ParsedEntry], *, limit: int = ENTRIES_PER_APP) -> list[ParsedEntry]:
     if not entries:
         return []
