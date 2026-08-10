@@ -8,9 +8,9 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.catalog.apps import all_slugs
-from app.presentation.feed_context import build_page_context
+from app.presentation.feed_context import build_feed_context, build_sidebar_context
 from app.presentation.jinja import render_page, render_template
-from app.settings import COOKIE_MUTED_APPS, COOKIE_THEME
+from app.settings import COOKIE_MUTED_APPS, COOKIE_THEME, THEMES
 from app.storage.db import get_db
 from app.user_prefs.cookies import cookie_kwargs
 
@@ -24,13 +24,13 @@ class PreferencesPayload(BaseModel):
 
 @router.get("/feed", response_class=HTMLResponse)
 def feed_partial(request: Request, db: Annotated[Session, Depends(get_db)]):
-    page = build_page_context(db, request)
+    page = build_feed_context(db, request)
     return render_page(request, "partials/feed.html", page.feed_template_context())
 
 
 @router.get("/sidebar")
 def sidebar_partial(request: Request, db: Annotated[Session, Depends(get_db)]):
-    ctx = build_page_context(db, request).sidebar_template_context()
+    ctx = build_sidebar_context(db, request).sidebar_template_context()
     return JSONResponse(
         {
             "apps_html": render_template("partials/sidebar_apps.html", ctx),
@@ -50,7 +50,7 @@ def save_preferences(payload: PreferencesPayload):
         ",".join(muted),
         **cookie_kwargs(),
     )
-    if payload.theme in {"light", "dark"}:
+    if payload.theme in THEMES:
         response.set_cookie(COOKIE_THEME, payload.theme, **cookie_kwargs())
 
     return response

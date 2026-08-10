@@ -1,44 +1,33 @@
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable
+import re
 
-import feedparser
 from bs4 import BeautifulSoup
 
-from app.ingestion.github_atom import (
-    BOILERPLATE_RE,
-    entry_html,
-    entry_published_at,
-    is_github_prerelease_item,
-)
+from app.ingestion.fetcher import GitHubReleaseDraft
+from app.ingestion.normalize import is_noise_line
 from app.models.changelog import ParsedEntry
 from app.settings import ENTRIES_PER_APP
 
-ItemParser = Callable[[object], Awaitable[ParsedEntry | None]]
+_MD_BULLET_RE = re.compile(r"^[-*+]\s+(.+)$")
+_MD_HEADING_RE = re.compile(r"^#{1,3}\s+(.*)$")
 
 
 async def parse_github_releases(
-    content: str,
+    drafts: list[GitHubReleaseDraft],
     *,
     limit: int = ENTRIES_PER_APP,
-    prerelease_keys: frozenset[str] | None = None,
-    parse_item: ItemParser | None = None,
+    enrich=None,
 ) -> list[ParsedEntry]:
-    feed = feedparser.parse(content)
-    if not feed.entries:
-        return []
-
     results: list[ParsedEntry] = []
-    for item in feed.entries:
-        if is_github_prerelease_item(item, prerelease_keys):
-            continue
-        if parse_item is not None:
+    for draft in drafts:
+        if enrich is not None:
             try:
-                entry = await parse_item(item)
+                entry = await enrich(draft)
             except ValueError:
                 continue
         else:
-            entry = _parse_release_item(item)
+            entry = entry_from_draft(draft)
         if entry is not None:
             results.append(entry)
         if len(results) >= limit:
@@ -46,33 +35,57 @@ async def parse_github_releases(
     return results
 
 
-def _parse_release_item(item) -> ParsedEntry | None:
-    raw_title = (item.get("title") or "Release").strip()
-    title = raw_title
-    link = (item.get("link") or "").strip()
-    external_id = (item.get("id") or link or title).strip()
-    published = entry_published_at(raw_title, item)
-    html = entry_html(item)
-    soup = BeautifulSoup(html, "html.parser") if html else None
-    raw_lines = _extract_lines(soup) if soup else []
-    highlights = raw_lines if raw_lines else [title]
-
+def entry_from_draft(draft: GitHubReleaseDraft) -> ParsedEntry:
+    lines = extract_body_lines(draft.body)
+    highlights = lines if lines else [draft.title]
     return ParsedEntry(
-        external_id=external_id,
-        title=title,
+        external_id=draft.external_id,
+        title=draft.title,
         highlights=highlights,
-        source_url=link or external_id,
-        published_at=published,
+        source_url=draft.html_url,
+        published_at=draft.published_at,
     )
 
 
-def _extract_lines(soup: BeautifulSoup) -> list[str]:
-    lines = [li.get_text(" ", strip=True) for li in soup.find_all("li") if li.get_text(" ", strip=True)]
+def extract_body_lines(body: str) -> list[str]:
+    if not body.strip():
+        return []
+    if "<li" in body.lower() or "<p" in body.lower():
+        return _extract_html_lines(body)
+    return _extract_markdown_lines(body)
+
+
+def _extract_html_lines(html: str) -> list[str]:
+    soup = BeautifulSoup(html, "html.parser")
+    lines = [
+        li.get_text(" ", strip=True)
+        for li in soup.find_all("li")
+        if li.get_text(" ", strip=True) and not is_noise_line(li.get_text(" ", strip=True))
+    ]
     if lines:
         return lines
-
     return [
         p.get_text(" ", strip=True)
         for p in soup.find_all("p")
-        if p.get_text(" ", strip=True) and not BOILERPLATE_RE.search(p.get_text(" ", strip=True))
+        if p.get_text(" ", strip=True) and not is_noise_line(p.get_text(" ", strip=True))
+    ]
+
+
+def _extract_markdown_lines(body: str) -> list[str]:
+    lines: list[str] = []
+    for raw in body.splitlines():
+        match = _MD_BULLET_RE.match(raw.strip())
+        if not match:
+            continue
+        text = match.group(1).strip()
+        if text and not is_noise_line(text):
+            lines.append(text)
+    if lines:
+        return lines
+    return [
+        line.strip()
+        for line in body.splitlines()
+        if len(line.strip()) >= 24
+        and not _MD_HEADING_RE.match(line.strip())
+        and not is_noise_line(line.strip())
     ]

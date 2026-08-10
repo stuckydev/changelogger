@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 from markupsafe import Markup, escape
 
@@ -104,6 +104,19 @@ def format_month_year(value: datetime) -> str:
 
 def month_key(value: datetime) -> str:
     return value.strftime("%Y-%m")
+
+
+def update_freshness(value: datetime | None) -> str:
+    """Return a CSS modifier for how recent an app's last update is."""
+    if value is None:
+        return ""
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    age = now - value
+    if age <= timedelta(days=30):
+        return "fresh"
+    if age <= timedelta(days=180):
+        return "aging"
+    return "stale"
 
 
 def _display_text(app: AppConfig, text: str) -> Markup:

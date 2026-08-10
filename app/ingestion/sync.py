@@ -4,65 +4,40 @@ import asyncio
 import logging
 from datetime import datetime, timezone
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from app.catalog.apps import AppConfig, load_apps
 from app.ingestion.errors import FetchError
-from app.ingestion.fetcher import fetch_source
 from app.ingestion.pipeline import parse_recent
 from app.models.changelog import ParsedEntry, highlights_to_json, make_entry_id
-from app.settings import ENTRIES_PER_APP
 from app.storage.entries_repo import save_last_new_entries_count
 from app.storage.models import AppSyncStatus, ChangelogEntry
 
 logger = logging.getLogger(__name__)
 
 
-def upsert_recent(db: Session, app: AppConfig, entries: list[ParsedEntry]) -> int:
+def replace_recent(db: Session, app: AppConfig, entries: list[ParsedEntry]) -> int:
     now = datetime.now(timezone.utc).replace(tzinfo=None)
-    kept_ids: set[str] = set()
-    new_count = 0
-
-    for entry in entries:
-        highlights_json = highlights_to_json(entry.highlights)
-        entry_id = make_entry_id(app.slug, entry.external_id)
-        existing = db.get(ChangelogEntry, entry_id)
-        kept_ids.add(entry_id)
-        payload = {
-            "app_slug": app.slug,
-            "external_id": entry.external_id,
-            "title": entry.title,
-            "highlights": highlights_json,
-            "source_url": entry.source_url,
-            "published_at": entry.published_at,
-            "fetched_at": now,
-        }
-        if existing is None:
-            db.add(ChangelogEntry(id=entry_id, **payload))
-            new_count += 1
-        else:
-            for key, value in payload.items():
-                setattr(existing, key, value)
-
-    db.flush()
-
-    rows = list(
-        db.scalars(
-            select(ChangelogEntry)
-            .where(ChangelogEntry.app_slug == app.slug)
-            .order_by(ChangelogEntry.published_at.desc())
-        )
+    previous_ids = set(
+        db.scalars(select(ChangelogEntry.external_id).where(ChangelogEntry.app_slug == app.slug))
     )
-    kept_seen = 0
-    for row in rows:
-        if row.id not in kept_ids:
-            db.delete(row)
-            continue
-        kept_seen += 1
-        if kept_seen > ENTRIES_PER_APP:
-            db.delete(row)
+    new_count = sum(1 for entry in entries if entry.external_id not in previous_ids)
 
+    db.execute(delete(ChangelogEntry).where(ChangelogEntry.app_slug == app.slug))
+    for entry in entries:
+        db.add(
+            ChangelogEntry(
+                id=make_entry_id(app.slug, entry.external_id),
+                app_slug=app.slug,
+                external_id=entry.external_id,
+                title=entry.title,
+                highlights=highlights_to_json(entry.highlights),
+                source_url=entry.source_url,
+                published_at=entry.published_at,
+                fetched_at=now,
+            )
+        )
     return new_count
 
 
@@ -87,14 +62,14 @@ def _persist_app_sync(
         return str(outcome), 0
 
     try:
-        new_count = upsert_recent(db, app, outcome)
+        new_count = replace_recent(db, app, outcome)
         record_sync_status(db, app.slug, None)
         db.commit()
         logger.info("Synced %s: %s", app.slug, outcome[0].title)
         return None, new_count
     except Exception as exc:
         db.rollback()
-        logger.exception("Upsert failed for %s: %s", app.slug, exc)
+        logger.exception("Replace failed for %s: %s", app.slug, exc)
         message = str(exc)
         record_sync_status(db, app.slug, message)
         db.commit()
@@ -103,8 +78,7 @@ def _persist_app_sync(
 
 async def _fetch_entries(app: AppConfig) -> tuple[AppConfig, list[ParsedEntry] | FetchError]:
     try:
-        content = await fetch_source(app)
-        return app, await parse_recent(app, content)
+        return app, await parse_recent(app)
     except FetchError as exc:
         return app, exc
     except Exception as exc:

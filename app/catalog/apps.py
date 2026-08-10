@@ -11,7 +11,7 @@ from app.infra.logos import thumb_url_for_slug
 from app.settings import CONFIG_PATH, HIGHLIGHT_LIMIT, STATIC_DIR
 
 AppCategory = Literal["saas", "selfhosted", "games", "utilities"]
-EnrichType = Literal["actual_blog"]
+EnrichType = Literal["actual_blog", "mtgarena_notes"]
 
 CATEGORY_LABELS: dict[AppCategory, str] = {
     "saas": "SaaS",
@@ -31,9 +31,11 @@ ParserType = Literal[
     "zendesk_articles",
 ]
 
+_VALID_ENRICH = frozenset({"actual_blog", "mtgarena_notes"})
 
-def github_releases_url(github_repo: str) -> str:
-    return f"https://github.com/{github_repo.strip('/')}/releases.atom"
+
+def github_releases_page_url(github_repo: str) -> str:
+    return f"https://github.com/{github_repo.strip('/')}/releases"
 
 
 def _resolve_logo_src(slug: str, logo_url: str | None) -> str:
@@ -89,14 +91,14 @@ def load_apps() -> tuple[AppConfig, ...]:
         github_repo = item.get("github_repo")
         source_url = item.get("source_url")
         enrich = item.get("enrich")
-        if enrich is not None and enrich not in {"actual_blog"}:
+        if enrich is not None and enrich not in _VALID_ENRICH:
             raise ValueError(f"App '{item['slug']}': unknown enrich '{enrich}'")
 
         if parser == "github_releases":
-            if not github_repo and not source_url:
-                raise ValueError(f"App '{item['slug']}': github_releases requires github_repo or source_url")
-            if not source_url and github_repo:
-                source_url = github_releases_url(github_repo)
+            if not github_repo:
+                raise ValueError(f"App '{item['slug']}': github_releases requires github_repo")
+            if not source_url:
+                source_url = github_releases_page_url(github_repo)
         elif not source_url:
             raise ValueError(f"App '{item['slug']}': source_url is required")
 

@@ -2,15 +2,15 @@ from __future__ import annotations
 
 import re
 
-from app.settings import HIGHLIGHT_LIMIT, HIGHLIGHT_MAX_CHARS
 from app.models.changelog import ParsedEntry
+from app.settings import HIGHLIGHT_LIMIT, HIGHLIGHT_MAX_CHARS
 
 NOISE_RE = re.compile(
     r"(update sponsors readme|chore:\s*update sponsors|github-actions\[bot\]|"
     r"please watch it on youtube|see the announcement on x|learn more about|"
     r"view release notes|latest versions at the time of publishing|"
     r"see the full release notes|microsoft store updates can sometimes lag|"
-    r"please note:)",
+    r"please note:|flathub)",
     re.I,
 )
 
@@ -23,6 +23,15 @@ def clean_bullet(text: str) -> str:
     if len(cleaned) > HIGHLIGHT_MAX_CHARS:
         cleaned = cleaned[: HIGHLIGHT_MAX_CHARS - 1].rsplit(" ", 1)[0] + "…"
     return cleaned
+
+
+def is_noise_line(text: str) -> bool:
+    bullet = clean_bullet(text)
+    return not bullet or bool(NOISE_RE.search(bullet))
+
+
+def useful_highlight_lines(lines: list[str]) -> list[str]:
+    return [bullet for line in lines if (bullet := clean_bullet(line)) and not NOISE_RE.search(bullet)]
 
 
 def normalize_highlights(lines: list[str], *, limit: int = HIGHLIGHT_LIMIT) -> list[str]:

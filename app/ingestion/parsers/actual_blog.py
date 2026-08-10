@@ -4,65 +4,56 @@ import re
 
 from bs4 import BeautifulSoup
 
-from app.ingestion.github_atom import (
-    BOILERPLATE_RE,
-    entry_html,
-    entry_published_at,
-)
+from app.ingestion.fetcher import GitHubReleaseDraft
+from app.ingestion.normalize import is_noise_line, useful_highlight_lines
+from app.ingestion.parsers.github_releases import extract_body_lines
 from app.infra.http import get_http_client
 from app.models.changelog import ParsedEntry
 
 RELEASE_TITLE_PREFIX = re.compile(r"^(Pre-Release|Release)\s+", re.I)
-USELESS_HIGHLIGHT_RE = re.compile(
-    r"see the full release notes|view release notes|please note:",
-    re.I,
-)
 PR_LINE_RE = re.compile(r"^#\d+")
 BLOG_PATH_RE = re.compile(r"actualbudget\.org/blog/release-", re.I)
 VERSION_ONLY_RE = re.compile(r"^(?:release\s+)?v?[\d.]+$", re.I)
+MD_LINK_RE = re.compile(r"\[([^\]]*)\]\((https?://[^)]+)\)")
+CHANGE_HEADING_RE = re.compile(
+    r"^(?:#{1,3}\s+)?(changes|changelog|what's changed|what changed)\s*$",
+    re.I,
+)
 
 
-async def parse_actual_release_item(item) -> ParsedEntry | None:
-    raw_title = (item.get("title") or "Release").strip()
-    version_title = RELEASE_TITLE_PREFIX.sub("", raw_title).strip() or raw_title
-    link = (item.get("link") or "").strip()
-    external_id = (item.get("id") or link or version_title).strip()
-    published = entry_published_at(raw_title, item)
-    html = entry_html(item)
-    soup = BeautifulSoup(html, "html.parser") if html else None
-
-    detail_url = _extract_detail_url(soup, version_title) if soup else None
-    raw_lines = _extract_change_lines(soup) if soup else []
+async def enrich_actual_blog(draft: GitHubReleaseDraft) -> ParsedEntry:
+    version_title = RELEASE_TITLE_PREFIX.sub("", draft.title).strip() or draft.title
+    detail_url = _extract_detail_url(draft.body, version_title)
+    raw_lines = _extract_change_lines(draft.body)
     page_title = ""
-    if not _is_useful_lines(raw_lines) and detail_url:
+    if not useful_highlight_lines(raw_lines) and detail_url:
         page_title, blog_lines = await _enrich_from_blog(detail_url)
         if blog_lines:
             raw_lines = blog_lines
 
-    if not raw_lines or _only_placeholder_highlights(raw_lines):
-        raise ValueError(f"No changelog highlights extracted (detail: {detail_url or link})")
+    if not useful_highlight_lines(raw_lines):
+        raise ValueError(f"No changelog highlights extracted (detail: {detail_url or draft.html_url})")
 
     title = _pick_display_title(version_title, page_title, raw_lines)
     return ParsedEntry(
-        external_id=external_id,
+        external_id=draft.external_id,
         title=title,
         highlights=raw_lines,
-        source_url=detail_url or link or external_id,
-        published_at=published,
+        source_url=detail_url or draft.html_url,
+        published_at=draft.published_at,
     )
 
 
-def _is_useful_lines(lines: list[str]) -> bool:
-    if not lines:
-        return False
-    return any(line.strip() and not BOILERPLATE_RE.search(line) for line in lines)
+def _extract_change_lines(body: str) -> list[str]:
+    if not body.strip():
+        return []
+    if "<h2" in body.lower() or "<h3" in body.lower() or "<ul" in body.lower():
+        return _extract_change_lines_html(body)
+    return _extract_change_lines_markdown(body)
 
 
-def _only_placeholder_highlights(highlights: list[str]) -> bool:
-    return len(highlights) == 1 and bool(USELESS_HIGHLIGHT_RE.search(highlights[0]))
-
-
-def _extract_change_lines(soup: BeautifulSoup) -> list[str]:
+def _extract_change_lines_html(html: str) -> list[str]:
+    soup = BeautifulSoup(html, "html.parser")
     lines: list[str] = []
     for heading in soup.find_all(["h2", "h3"]):
         label = heading.get_text(" ", strip=True).lower()
@@ -78,31 +69,55 @@ def _extract_change_lines(soup: BeautifulSoup) -> list[str]:
             sibling = sibling.find_next_sibling()
         if lines:
             break
-
     if lines:
         return lines
-
-    return [
-        p.get_text(" ", strip=True)
-        for p in soup.find_all("p")
-        if p.get_text(" ", strip=True) and not BOILERPLATE_RE.search(p.get_text(" ", strip=True))
-    ]
+    return extract_body_lines(html)
 
 
-def _extract_detail_url(soup: BeautifulSoup, title: str) -> str | None:
+def _extract_change_lines_markdown(body: str) -> list[str]:
+    lines: list[str] = []
+    in_changes = False
+    for raw in body.splitlines():
+        stripped = raw.strip()
+        heading = CHANGE_HEADING_RE.match(stripped)
+        if heading:
+            in_changes = True
+            continue
+        if in_changes and stripped.startswith("#"):
+            break
+        if in_changes and stripped.startswith(("- ", "* ", "+ ")):
+            text = stripped[2:].strip()
+            if text:
+                lines.append(text)
+    if lines:
+        return lines
+    return extract_body_lines(body)
+
+
+def _extract_detail_url(body: str, title: str) -> str | None:
     version_hint = title.removeprefix("v").removeprefix("V").strip()
     blog_links: list[str] = []
 
-    for anchor in soup.find_all("a", href=True):
-        href = anchor["href"].strip()
-        text = anchor.get_text(" ", strip=True).lower()
-        if not href or href.startswith("#"):
-            continue
-        if "actualbudget.org/blog/release-" in href:
+    for match in MD_LINK_RE.finditer(body):
+        text, href = match.group(1).lower(), match.group(2).strip()
+        if BLOG_PATH_RE.search(href):
             blog_links.append(href.rstrip("/") + "/")
             continue
         if "release note" in text or "changelog" in text:
             return href
+
+    if "<a" in body.lower():
+        soup = BeautifulSoup(body, "html.parser")
+        for anchor in soup.find_all("a", href=True):
+            href = anchor["href"].strip()
+            text = anchor.get_text(" ", strip=True).lower()
+            if not href or href.startswith("#"):
+                continue
+            if "actualbudget.org/blog/release-" in href:
+                blog_links.append(href.rstrip("/") + "/")
+                continue
+            if "release note" in text or "changelog" in text:
+                return href
 
     for href in blog_links:
         if version_hint and version_hint in href:
@@ -138,7 +153,7 @@ def _parse_actual_blog(html: str) -> tuple[str, list[str]]:
     lines: list[str] = []
     for li in main.find_all("li"):
         text = li.get_text(" ", strip=True)
-        if not text or PR_LINE_RE.match(text) or len(text) < 18:
+        if not text or PR_LINE_RE.match(text) or len(text) < 18 or is_noise_line(text):
             continue
         lines.append(text)
 

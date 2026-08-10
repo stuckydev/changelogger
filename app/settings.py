@@ -12,6 +12,7 @@ STATIC_DIR = ROOT_DIR / "app" / "static"
 TEMPLATES_DIR = ROOT_DIR / "app" / "templates"
 
 DEFAULT_THEME = "dark"
+THEMES = frozenset({"light", "dark"})
 USER_AGENT = "Changelogger/1.0 (+https://github.com/changelogger)"
 HTTP_TIMEOUT = 30.0
 HIGHLIGHT_LIMIT = 5

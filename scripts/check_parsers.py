@@ -11,10 +11,11 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from app.catalog.apps import AppConfig
-from app.ingestion.github_atom import tag_lookup_keys
+from app.ingestion.fetcher import draft_from_release
 from app.ingestion.normalize import finalize_entry, normalize_highlights
-from app.ingestion.parsers.actual_blog import parse_actual_release_item
+from app.ingestion.parsers.actual_blog import enrich_actual_blog
 from app.ingestion.parsers.github_releases import parse_github_releases
+from app.ingestion.parsers.mtgarena_notes import extract_mtgarena_highlights
 from app.ingestion.parsers.notion_html import parse_notion_html
 from app.ingestion.parsers.rss import parse_rss
 from app.ingestion.parsers.zendesk_articles import parse_zendesk_articles
@@ -23,24 +24,28 @@ from app.models.changelog import ParsedEntry
 from app.presentation.view_models import build_feed_views
 
 
-ATOM = """<?xml version="1.0" encoding="UTF-8"?>
-<feed xmlns="http://www.w3.org/2005/Atom">
-  <entry>
-    <id>tag:github.com,2008:Repository/1/v1.2.3</id>
-    <title>v1.2.3</title>
-    <updated>2024-06-01T12:00:00Z</updated>
-    <link href="https://github.com/example/repo/releases/tag/v1.2.3"/>
-    <content type="html">&lt;ul&gt;&lt;li&gt;Fixed the thing&lt;/li&gt;&lt;li&gt;Added another thing&lt;/li&gt;&lt;/ul&gt;</content>
-  </entry>
-  <entry>
-    <id>tag:github.com,2008:Repository/1/v1.2.3-beta.1</id>
-    <title>Pre-Release v1.2.3-beta.1</title>
-    <updated>2024-06-02T12:00:00Z</updated>
-    <link href="https://github.com/example/repo/releases/tag/v1.2.3-beta.1"/>
-    <content type="html">&lt;p&gt;prerelease noise&lt;/p&gt;</content>
-  </entry>
-</feed>
-"""
+GITHUB_RELEASES = [
+    {
+        "id": 1,
+        "tag_name": "v1.2.3",
+        "name": "v1.2.3",
+        "prerelease": False,
+        "draft": False,
+        "html_url": "https://github.com/example/repo/releases/tag/v1.2.3",
+        "published_at": "2024-06-01T12:00:00Z",
+        "body": "- Fixed the thing\n- Added another thing\n",
+    },
+    {
+        "id": 2,
+        "tag_name": "v1.2.3-beta.1",
+        "name": "Pre-Release v1.2.3-beta.1",
+        "prerelease": True,
+        "draft": False,
+        "html_url": "https://github.com/example/repo/releases/tag/v1.2.3-beta.1",
+        "published_at": "2024-06-02T12:00:00Z",
+        "body": "prerelease noise",
+    },
+]
 
 RSS = """<?xml version="1.0"?>
 <rss version="2.0">
@@ -68,17 +73,16 @@ ZENDESK = """{
   ]
 }"""
 
-ACTUAL_ATOM = """<?xml version="1.0" encoding="UTF-8"?>
-<feed xmlns="http://www.w3.org/2005/Atom">
-  <entry>
-    <id>tag:github.com,2008:Repository/1/v24.10.0</id>
-    <title>Release v24.10.0</title>
-    <updated>2024-10-01T12:00:00Z</updated>
-    <link href="https://github.com/actualbudget/actual/releases/tag/v24.10.0"/>
-    <content type="html">&lt;h2&gt;Changes&lt;/h2&gt;&lt;ul&gt;&lt;li&gt;Improved reconciliation for shared accounts&lt;/li&gt;&lt;/ul&gt;</content>
-  </entry>
-</feed>
-"""
+ACTUAL_RELEASE = {
+    "id": 10,
+    "tag_name": "v24.10.0",
+    "name": "Release v24.10.0",
+    "prerelease": False,
+    "draft": False,
+    "html_url": "https://github.com/actualbudget/actual/releases/tag/v24.10.0",
+    "published_at": "2024-10-01T12:00:00Z",
+    "body": "## Changes\n\n- Improved reconciliation for shared accounts\n",
+}
 
 NOTION_HTML = """
 <html><body>
@@ -88,13 +92,9 @@ NOTION_HTML = """
 """
 
 
-def _check_tags() -> None:
-    keys = tag_lookup_keys("v1.2.3")
-    assert keys == ["v1.2.3", "1.2.3"], keys
-
-
 def _check_github() -> None:
-    entries = asyncio.run(parse_github_releases(ATOM, limit=5))
+    drafts = [draft for release in GITHUB_RELEASES if (draft := draft_from_release(release))]
+    entries = asyncio.run(parse_github_releases(drafts, limit=5))
     assert len(entries) == 1, entries
     assert entries[0].title == "v1.2.3"
     assert "Fixed the thing" in entries[0].highlights
@@ -107,18 +107,22 @@ def _check_rss() -> None:
 
 
 def _check_zendesk() -> None:
-    entries = parse_zendesk_articles(ZENDESK, source_url="https://example.com", limit=5)
+    entries = parse_zendesk_articles(
+        ZENDESK,
+        source_url="https://example.com",
+        limit=5,
+        extract_highlights=extract_mtgarena_highlights,
+    )
     assert len(entries) == 1
     assert entries[0].highlights == ["Challenge queue fix"]
 
 
 def _check_actual() -> None:
-    entries = asyncio.run(
-        parse_github_releases(ACTUAL_ATOM, limit=5, parse_item=parse_actual_release_item)
-    )
-    assert len(entries) == 1, entries
-    assert entries[0].title == "Improved reconciliation for shared accounts"
-    assert "Improved reconciliation for shared accounts" in entries[0].highlights
+    draft = draft_from_release(ACTUAL_RELEASE)
+    assert draft is not None
+    entry = asyncio.run(enrich_actual_blog(draft))
+    assert entry.title == "Improved reconciliation for shared accounts"
+    assert "Improved reconciliation for shared accounts" in entry.highlights
 
 
 def _check_notion() -> None:
@@ -152,7 +156,18 @@ def _check_pipeline() -> None:
         parser="rss",
         category="utilities",
     )
-    entries = asyncio.run(parse_recent(app, RSS))
+
+    async def _fake_fetch(_app):
+        return RSS
+
+    from app.ingestion import pipeline
+
+    original = pipeline.fetch_source
+    pipeline.fetch_source = _fake_fetch
+    try:
+        entries = asyncio.run(parse_recent(app))
+    finally:
+        pipeline.fetch_source = original
     assert len(entries) == 1
     assert entries[0].highlights == ["Ship it"]
 
@@ -172,6 +187,7 @@ def _check_mtg_view() -> None:
         source_url="https://example.com",
         parser="zendesk_articles",
         category="games",
+        enrich="mtgarena_notes",
         highlight_terms=("Challenge", "Friends", "Draft", "Sealed", "Limited"),
     )
     views = build_feed_views([Row()], {"mtgarena": app})
@@ -181,7 +197,6 @@ def _check_mtg_view() -> None:
 
 
 def main() -> None:
-    _check_tags()
     _check_github()
     _check_rss()
     _check_zendesk()

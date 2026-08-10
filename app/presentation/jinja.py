@@ -6,7 +6,7 @@ from pathlib import Path
 from fastapi.templating import Jinja2Templates
 
 from app.settings import APP_PREFIX, STATIC_DIR, TEMPLATES_DIR
-from app.utils.date_utils import format_sync_time, update_freshness
+from app.utils.date_utils import format_sync_time
 from app.presentation.view_models import (
     days_since,
     format_date,
@@ -14,6 +14,7 @@ from app.presentation.view_models import (
     format_relative_date,
     format_sidebar_date,
     month_key,
+    update_freshness,
 )
 
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
