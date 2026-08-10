@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 from functools import lru_cache
-from typing import Literal
+from typing import Literal, cast
 
 import yaml
 
@@ -31,7 +31,10 @@ ParserType = Literal[
     "zendesk_articles",
 ]
 
-_VALID_ENRICH = frozenset({"actual_blog", "mtgarena_notes"})
+ENRICH_BY_PARSER: dict[ParserType, frozenset[EnrichType]] = {
+    "github_releases": frozenset({"actual_blog"}),
+    "zendesk_articles": frozenset({"mtgarena_notes"}),
+}
 
 
 def github_releases_page_url(github_repo: str) -> str:
@@ -82,6 +85,19 @@ class AppConfig:
         return CATEGORY_LABELS[self.category]
 
 
+def _validate_enrich(slug: str, parser: ParserType, enrich: str | None) -> EnrichType | None:
+    if enrich is None:
+        return None
+    allowed = ENRICH_BY_PARSER.get(parser, frozenset())
+    if enrich not in allowed:
+        allowed_text = ", ".join(sorted(allowed)) if allowed else "(none)"
+        raise ValueError(
+            f"App '{slug}': enrich '{enrich}' is not valid for parser '{parser}' "
+            f"(allowed: {allowed_text})"
+        )
+    return cast(EnrichType, enrich)
+
+
 @lru_cache
 def load_apps() -> tuple[AppConfig, ...]:
     raw = yaml.safe_load(CONFIG_PATH.read_text(encoding="utf-8"))
@@ -90,19 +106,17 @@ def load_apps() -> tuple[AppConfig, ...]:
         parser: ParserType = item["parser"]
         github_repo = item.get("github_repo")
         source_url = item.get("source_url")
-        enrich = item.get("enrich")
-        if enrich is not None and enrich not in _VALID_ENRICH:
-            raise ValueError(f"App '{item['slug']}': unknown enrich '{enrich}'")
+        slug = item["slug"]
+        enrich = _validate_enrich(slug, parser, item.get("enrich"))
 
         if parser == "github_releases":
             if not github_repo:
-                raise ValueError(f"App '{item['slug']}': github_releases requires github_repo")
+                raise ValueError(f"App '{slug}': github_releases requires github_repo")
             if not source_url:
                 source_url = github_releases_page_url(github_repo)
         elif not source_url:
-            raise ValueError(f"App '{item['slug']}': source_url is required")
+            raise ValueError(f"App '{slug}': source_url is required")
 
-        slug = item["slug"]
         raw_category = item.get("category", "utilities")
         if raw_category not in CATEGORY_LABELS:
             raise ValueError(

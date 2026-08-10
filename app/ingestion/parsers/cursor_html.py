@@ -6,6 +6,7 @@ from urllib.parse import urljoin
 
 from bs4 import BeautifulSoup
 
+from app.ingestion.normalize import is_noise_line
 from app.models.changelog import ParsedEntry
 from app.settings import ENTRIES_PER_APP
 from app.utils.date_utils import parse_datetime
@@ -90,8 +91,10 @@ def _extract_lines(article) -> list[str]:
 
 def _is_noise(text: str) -> bool:
     lowered = text.lower()
-    return (
+    if (
         lowered in {"play", "changelog"}
         or bool(CHANGELOG_HEADER_RE.match(text))
         or (lowered.endswith("· changelog") and len(text) < 80)
-    )
+    ):
+        return True
+    return is_noise_line(text)

@@ -6,6 +6,7 @@ from urllib.parse import urljoin
 
 from bs4 import BeautifulSoup
 
+from app.ingestion.normalize import is_noise_line
 from app.models.changelog import ParsedEntry
 from app.settings import ENTRIES_PER_APP
 
@@ -75,18 +76,9 @@ def _extract_lines(article) -> list[str]:
 
 def _is_noise(text: str) -> bool:
     lowered = text.lower()
-    noise_markers = (
-        "ad blocker",
-        "preventing the video",
-        "please watch it on youtube",
-        "see the announcement on x",
-        "learn more about",
-        "watch the demo",
-        "read the docs",
-        "join the ",
-        "waitlist",
-    )
-    return lowered in {"play", "finally!"} or any(marker in lowered for marker in noise_markers)
+    if lowered in {"play", "finally!"}:
+        return True
+    return is_noise_line(text)
 
 
 def _find_following_article(link) -> BeautifulSoup | None:

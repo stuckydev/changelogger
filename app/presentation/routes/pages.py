@@ -19,7 +19,7 @@ router = APIRouter()
 def index(request: Request, db: Annotated[Session, Depends(get_db)]):
     raw_cookie = request.cookies.get(COOKIE_MUTED_APPS)
     page = build_page_context(db, request)
-    response = render_page(request, "index.html", {"page": page, **page.sidebar_template_context()})
+    response = render_page(request, "index.html", {"page": page, **page.sidebar.as_template_dict()})
     if should_persist_muted(raw_cookie, page.muted_apps):
         response.set_cookie(
             COOKIE_MUTED_APPS,

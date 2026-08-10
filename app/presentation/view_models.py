@@ -26,24 +26,28 @@ class FeedEntryView:
 
 
 @dataclass
-class PageContext:
-    apps: list[AppConfig]
-    muted_apps: list[str]
+class FeedContext:
     entries: list[FeedEntryView]
-    theme: str
-    last_sync: datetime | None
-    app_last_updates: dict[str, datetime]
-    sync_errors: dict[str, str]
-    has_sync_data: bool = False
-    last_new_entries_count: int | None = None
+    has_sync_data: bool
 
-    def feed_template_context(self) -> dict:
+    def as_template_dict(self) -> dict:
         return {
             "entries": self.entries,
             "has_sync_data": self.has_sync_data,
         }
 
-    def sidebar_template_context(self) -> dict:
+
+@dataclass
+class SidebarContext:
+    apps: list[AppConfig]
+    muted_apps: list[str]
+    theme: str
+    last_sync: datetime | None
+    app_last_updates: dict[str, datetime]
+    sync_errors: dict[str, str]
+    last_new_entries_count: int | None
+
+    def as_template_dict(self) -> dict:
         return {
             "apps": self.apps,
             "muted_apps": self.muted_apps,
@@ -52,6 +56,28 @@ class PageContext:
             "last_sync": self.last_sync,
             "last_new_entries_count": self.last_new_entries_count,
         }
+
+
+@dataclass
+class PageContext:
+    feed: FeedContext
+    sidebar: SidebarContext
+
+    @property
+    def theme(self) -> str:
+        return self.sidebar.theme
+
+    @property
+    def muted_apps(self) -> list[str]:
+        return self.sidebar.muted_apps
+
+    @property
+    def entries(self) -> list[FeedEntryView]:
+        return self.feed.entries
+
+    @property
+    def has_sync_data(self) -> bool:
+        return self.feed.has_sync_data
 
 
 GERMAN_MONTHS = (

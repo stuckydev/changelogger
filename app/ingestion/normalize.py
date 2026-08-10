@@ -8,9 +8,10 @@ from app.settings import HIGHLIGHT_LIMIT, HIGHLIGHT_MAX_CHARS
 NOISE_RE = re.compile(
     r"(update sponsors readme|chore:\s*update sponsors|github-actions\[bot\]|"
     r"please watch it on youtube|see the announcement on x|learn more about|"
-    r"view release notes|latest versions at the time of publishing|"
+    r"view release notes|latest versions|"
     r"see the full release notes|microsoft store updates can sometimes lag|"
-    r"please note:|flathub)",
+    r"please note:|flathub|ad blocker|preventing the video|watch the demo|"
+    r"read the docs|join the |waitlist)",
     re.I,
 )
 
@@ -30,8 +31,8 @@ def is_noise_line(text: str) -> bool:
     return not bullet or bool(NOISE_RE.search(bullet))
 
 
-def useful_highlight_lines(lines: list[str]) -> list[str]:
-    return [bullet for line in lines if (bullet := clean_bullet(line)) and not NOISE_RE.search(bullet)]
+def has_useful_highlights(lines: list[str]) -> bool:
+    return bool(normalize_highlights(lines, limit=1))
 
 
 def normalize_highlights(lines: list[str], *, limit: int = HIGHLIGHT_LIMIT) -> list[str]:
@@ -39,9 +40,9 @@ def normalize_highlights(lines: list[str], *, limit: int = HIGHLIGHT_LIMIT) -> l
     seen: set[str] = set()
 
     for line in lines:
-        bullet = clean_bullet(line)
-        if not bullet or NOISE_RE.search(bullet):
+        if is_noise_line(line):
             continue
+        bullet = clean_bullet(line)
         key = bullet.lower()
         if key in seen:
             continue

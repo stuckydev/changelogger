@@ -24,13 +24,16 @@ class PreferencesPayload(BaseModel):
 
 @router.get("/feed", response_class=HTMLResponse)
 def feed_partial(request: Request, db: Annotated[Session, Depends(get_db)]):
-    page = build_feed_context(db, request)
-    return render_page(request, "partials/feed.html", page.feed_template_context())
+    return render_page(
+        request,
+        "partials/feed.html",
+        build_feed_context(db, request).as_template_dict(),
+    )
 
 
 @router.get("/sidebar")
 def sidebar_partial(request: Request, db: Annotated[Session, Depends(get_db)]):
-    ctx = build_sidebar_context(db, request).sidebar_template_context()
+    ctx = build_sidebar_context(db, request).as_template_dict()
     return JSONResponse(
         {
             "apps_html": render_template("partials/sidebar_apps.html", ctx),

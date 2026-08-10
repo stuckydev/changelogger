@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Awaitable, Callable
 import re
 
 from bs4 import BeautifulSoup
@@ -12,12 +13,14 @@ from app.settings import ENTRIES_PER_APP
 _MD_BULLET_RE = re.compile(r"^[-*+]\s+(.+)$")
 _MD_HEADING_RE = re.compile(r"^#{1,3}\s+(.*)$")
 
+GitHubEnricher = Callable[[GitHubReleaseDraft], Awaitable[ParsedEntry]]
+
 
 async def parse_github_releases(
     drafts: list[GitHubReleaseDraft],
     *,
     limit: int = ENTRIES_PER_APP,
-    enrich=None,
+    enrich: GitHubEnricher | None = None,
 ) -> list[ParsedEntry]:
     results: list[ParsedEntry] = []
     for draft in drafts:

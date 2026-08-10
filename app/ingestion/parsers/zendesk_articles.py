@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-import re
+from collections.abc import Callable
 
 from bs4 import BeautifulSoup
 
@@ -9,7 +9,7 @@ from app.models.changelog import ParsedEntry
 from app.settings import ENTRIES_PER_APP
 from app.utils.date_utils import parse_datetime_or_now
 
-VERSION_RE = re.compile(r"(\d{4}\.\d+(?:\.\d+)?)")
+HighlightExtractor = Callable[[str], list[str]]
 
 
 def parse_zendesk_articles(
@@ -17,7 +17,7 @@ def parse_zendesk_articles(
     *,
     source_url: str,
     limit: int = ENTRIES_PER_APP,
-    extract_highlights=None,
+    extract_highlights: HighlightExtractor | None = None,
 ) -> list[ParsedEntry]:
     try:
         data = json.loads(content)
@@ -49,7 +49,12 @@ def extract_all_bullets(html: str) -> list[str]:
     return [li.get_text(" ", strip=True) for li in soup.find_all("li") if li.get_text(" ", strip=True)]
 
 
-def _parse_article(article: dict, *, fallback_source_url: str, extract_highlights) -> ParsedEntry | None:
+def _parse_article(
+    article: dict,
+    *,
+    fallback_source_url: str,
+    extract_highlights: HighlightExtractor,
+) -> ParsedEntry | None:
     title = (article.get("title") or "Patch Notes").strip()
     body = article.get("body") or ""
     if not body.strip():
@@ -59,18 +64,16 @@ def _parse_article(article: dict, *, fallback_source_url: str, extract_highlight
     if not highlights:
         return None
 
+    article_id = article.get("id")
+    if article_id is None:
+        return None
+
     published = parse_datetime_or_now(article.get("created_at") or article.get("updated_at"))
     source = (article.get("html_url") or fallback_source_url).strip()
-    external_id = str(article.get("id") or _version_from_title(title) or title)
     return ParsedEntry(
-        external_id=external_id,
+        external_id=str(article_id),
         title=title,
         highlights=highlights,
         source_url=source,
         published_at=published,
     )
-
-
-def _version_from_title(title: str) -> str | None:
-    match = VERSION_RE.search(title)
-    return match.group(1) if match else None

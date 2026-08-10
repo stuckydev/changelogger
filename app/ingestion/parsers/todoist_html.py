@@ -5,6 +5,7 @@ from datetime import datetime
 
 from bs4 import BeautifulSoup, NavigableString, Tag
 
+from app.ingestion.normalize import is_noise_line
 from app.models.changelog import ParsedEntry
 from app.settings import ENTRIES_PER_APP
 
@@ -51,7 +52,7 @@ def parse_todoist_html(content: str, *, source_url: str, limit: int = ENTRIES_PE
 
         if isinstance(node, Tag) and node.name == "li" and current_date:
             line = node.get_text(" ", strip=True)
-            if line and not line.startswith("Latest versions"):
+            if line and not is_noise_line(line):
                 buffer_lines.append(line)
             continue
 

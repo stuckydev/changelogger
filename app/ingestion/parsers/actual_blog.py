@@ -5,7 +5,7 @@ import re
 from bs4 import BeautifulSoup
 
 from app.ingestion.fetcher import GitHubReleaseDraft
-from app.ingestion.normalize import is_noise_line, useful_highlight_lines
+from app.ingestion.normalize import has_useful_highlights, is_noise_line
 from app.ingestion.parsers.github_releases import extract_body_lines
 from app.infra.http import get_http_client
 from app.models.changelog import ParsedEntry
@@ -26,12 +26,12 @@ async def enrich_actual_blog(draft: GitHubReleaseDraft) -> ParsedEntry:
     detail_url = _extract_detail_url(draft.body, version_title)
     raw_lines = _extract_change_lines(draft.body)
     page_title = ""
-    if not useful_highlight_lines(raw_lines) and detail_url:
+    if not has_useful_highlights(raw_lines) and detail_url:
         page_title, blog_lines = await _enrich_from_blog(detail_url)
         if blog_lines:
             raw_lines = blog_lines
 
-    if not useful_highlight_lines(raw_lines):
+    if not has_useful_highlights(raw_lines):
         raise ValueError(f"No changelog highlights extracted (detail: {detail_url or draft.html_url})")
 
     title = _pick_display_title(version_title, page_title, raw_lines)
