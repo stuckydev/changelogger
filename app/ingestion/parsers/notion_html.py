@@ -37,7 +37,7 @@ def parse_notion_html(content: str, *, source_url: str, limit: int = ENTRIES_PER
             continue
 
         seen.add(date_str)
-        entry_url = urljoin(base + "/", href.lstrip("/"))
+        entry_url = urljoin(base + "/", href)
         published = datetime.strptime(date_str, "%Y-%m-%d")
         article = _find_following_article(link)
         raw_lines = _extract_lines(article) if article else [title]

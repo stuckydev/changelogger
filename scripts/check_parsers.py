@@ -125,6 +125,7 @@ def _check_notion() -> None:
     entries = parse_notion_html(NOTION_HTML, source_url="https://www.notion.com/releases", limit=5)
     assert len(entries) == 1
     assert entries[0].title == "Databases everywhere"
+    assert entries[0].source_url == "https://www.notion.com/releases/2024-06-01/"
     assert any("databases" in line.lower() for line in entries[0].highlights)
 
 
