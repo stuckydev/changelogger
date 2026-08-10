@@ -11,6 +11,7 @@ data/*
 
 # Env
 .env
+icepanel-token.env
 
 # OS / IDE
 .DS_Store
