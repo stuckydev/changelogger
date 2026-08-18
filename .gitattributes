@@ -1,3 +1,2 @@
 * text=auto eol=lf
 *.sh text eol=lf
-docker/docker-entrypoint.sh text eol=lf

@@ -60,7 +60,7 @@ Deploy on a host running [Arcane](https://getarcane.app) via Git Sync so pushes 
 1. **GitOps** → add repository `https://github.com/stuckydev/changelogger.git` (PAT if private).
 2. **Projects** → **Create Project** → **From Git Repo**:
    - Branch: `main`
-   - Compose file: `compose.yml`
+   - Compose file: `docker-compose.yml`
    - **Sync entire directory**: on (needs `Dockerfile`, `app/`, etc.)
    - **Auto Sync**: on (e.g. 5 min interval)
 3. Open the project → set `.env` (not in git):
@@ -76,7 +76,7 @@ Deploy on a host running [Arcane](https://getarcane.app) via Git Sync so pushes 
 
 4. **Build & Deploy** for the first run. Leave the project running — Arcane only auto-redeploys running projects.
 
-`compose.yml` omits a pinned `image:` tag so Arcane rebuilds the image on each deploy after a git sync.
+`docker-compose.yml` omits a pinned `image:` tag so Arcane rebuilds the image on each deploy after a git sync.
 
 ### Day-to-day
 
