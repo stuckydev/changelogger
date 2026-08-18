@@ -20,8 +20,6 @@ CATEGORY_LABELS: dict[AppCategory, str] = {
     "utilities": "Utility",
 }
 
-CATEGORY_ORDER: tuple[AppCategory, ...] = ("saas", "selfhosted", "games", "utilities")
-
 ParserType = Literal[
     "rss",
     "todoist_html",
@@ -35,10 +33,6 @@ ENRICH_BY_PARSER: dict[ParserType, frozenset[EnrichType]] = {
     "github_releases": frozenset({"actual_blog"}),
     "zendesk_articles": frozenset({"mtgarena_notes"}),
 }
-
-
-def github_releases_page_url(github_repo: str) -> str:
-    return f"https://github.com/{github_repo.strip('/')}/releases"
 
 
 def _resolve_logo_src(slug: str, logo_url: str | None) -> str:
@@ -113,14 +107,14 @@ def load_apps() -> tuple[AppConfig, ...]:
             if not github_repo:
                 raise ValueError(f"App '{slug}': github_releases requires github_repo")
             if not source_url:
-                source_url = github_releases_page_url(github_repo)
+                source_url = f"https://github.com/{github_repo.strip('/')}/releases"
         elif not source_url:
             raise ValueError(f"App '{slug}': source_url is required")
 
         raw_category = item.get("category", "utilities")
         if raw_category not in CATEGORY_LABELS:
             raise ValueError(
-                f"App '{slug}': category must be one of {', '.join(CATEGORY_ORDER)}, got '{raw_category}'"
+                f"App '{slug}': category must be one of {', '.join(CATEGORY_LABELS)}, got '{raw_category}'"
             )
         category: AppCategory = raw_category
         terms = item.get("highlight_terms") or []
@@ -151,21 +145,16 @@ def all_slugs() -> list[str]:
     return [app.slug for app in load_apps()]
 
 
-def _sort_apps_by_last_update(
-    apps: list[AppConfig],
-    last_updates: dict[str, datetime],
-) -> list[AppConfig]:
-    return sorted(
-        apps,
-        key=lambda app: (
-            -(last_updates[app.slug].timestamp()) if app.slug in last_updates else float("inf"),
-            app.slug,
-        ),
-    )
-
-
 def apps_sorted_by_last_update(
     last_updates: dict[str, datetime] | None = None,
 ) -> tuple[AppConfig, ...]:
     updates = last_updates or {}
-    return tuple(_sort_apps_by_last_update(list(load_apps()), updates))
+    return tuple(
+        sorted(
+            load_apps(),
+            key=lambda app: (
+                -(updates[app.slug].timestamp()) if app.slug in updates else float("inf"),
+                app.slug,
+            ),
+        )
+    )

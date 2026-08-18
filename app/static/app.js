@@ -1,6 +1,4 @@
 (function () {
-  const APP_PREFIX = "clg";
-  const COOKIE_MUTED = `${APP_PREFIX}_muted_apps`;
   const SIDEBAR_POLL_MS = 60_000;
 
   const filterList = document.getElementById("app-filter-list");
@@ -294,11 +292,7 @@
     }
   });
 
-  if (typeof mobileSidebarQuery.addEventListener === "function") {
-    mobileSidebarQuery.addEventListener("change", syncSidebarLayout);
-  } else if (typeof mobileSidebarQuery.addListener === "function") {
-    mobileSidebarQuery.addListener(syncSidebarLayout);
-  }
+  mobileSidebarQuery.addEventListener("change", syncSidebarLayout);
 
   syncSidebarLayout();
 

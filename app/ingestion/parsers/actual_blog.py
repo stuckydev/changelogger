@@ -128,7 +128,7 @@ def _extract_detail_url(body: str, title: str) -> str | None:
 
 
 async def _enrich_from_blog(detail_url: str) -> tuple[str, list[str]]:
-    if not detail_url or not BLOG_PATH_RE.search(detail_url):
+    if not BLOG_PATH_RE.search(detail_url):
         return "", []
     if not detail_url.endswith("/"):
         detail_url = detail_url.rstrip("/") + "/"

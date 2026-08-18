@@ -15,13 +15,10 @@ def cookie_kwargs(max_age: int = COOKIE_MAX_AGE) -> dict:
 
 
 def parse_muted_apps(raw: str | None) -> list[str]:
-    """Default: no apps muted when cookie is missing or empty."""
-    known = all_slugs()
     if raw is None or not raw.strip():
         return []
-
-    known_set = set(known)
-    return [part.strip() for part in raw.split(",") if part.strip() in known_set]
+    known = set(all_slugs())
+    return [part.strip() for part in raw.split(",") if part.strip() in known]
 
 
 def visible_apps_from_muted(muted: list[str]) -> list[str]:

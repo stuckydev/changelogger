@@ -21,15 +21,13 @@ def parse_rss(content: str, *, limit: int = ENTRIES_PER_APP) -> list[ParsedEntry
 
     results: list[ParsedEntry] = []
     for item in sorted_items:
-        entry = _parse_rss_item(item)
-        if entry is not None:
-            results.append(entry)
+        results.append(_parse_rss_item(item))
         if len(results) >= limit:
             break
     return results
 
 
-def _parse_rss_item(item) -> ParsedEntry | None:
+def _parse_rss_item(item) -> ParsedEntry:
     title = (item.get("title") or "Release").strip()
     link = (item.get("link") or "").strip()
     external_id = (item.get("id") or link or title).strip()

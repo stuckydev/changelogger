@@ -87,7 +87,6 @@ async def _fetch_entries(app: AppConfig) -> tuple[AppConfig, list[ParsedEntry] |
 
 
 async def sync_all(db: Session) -> dict[str, str | None]:
-    """Return slug -> error message; None means success."""
     outcomes = await asyncio.gather(*[_fetch_entries(app) for app in load_apps()])
 
     results: dict[str, str | None] = {}

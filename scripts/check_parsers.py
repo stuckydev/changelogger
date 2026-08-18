@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from app.catalog.apps import AppConfig
+from app.ingestion import pipeline
 from app.ingestion.fetcher import draft_from_release
 from app.ingestion.normalize import finalize_entry, normalize_highlights
 from app.ingestion.parsers.actual_blog import enrich_actual_blog
@@ -19,7 +20,6 @@ from app.ingestion.parsers.mtgarena_notes import extract_mtgarena_highlights
 from app.ingestion.parsers.notion_html import parse_notion_html
 from app.ingestion.parsers.rss import parse_rss
 from app.ingestion.parsers.zendesk_articles import parse_zendesk_articles
-from app.ingestion.pipeline import parse_recent
 from app.models.changelog import ParsedEntry
 from app.presentation.view_models import build_feed_views
 
@@ -160,12 +160,10 @@ def _check_pipeline() -> None:
     async def _fake_fetch(_app):
         return RSS
 
-    from app.ingestion import pipeline
-
     original = pipeline.fetch_source
     pipeline.fetch_source = _fake_fetch
     try:
-        entries = asyncio.run(parse_recent(app))
+        entries = asyncio.run(pipeline.parse_recent(app))
     finally:
         pipeline.fetch_source = original
     assert len(entries) == 1

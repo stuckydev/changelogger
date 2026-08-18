@@ -39,9 +39,6 @@ def highlights_from_json(raw: str) -> list[str]:
 
 
 def pick_recent(entries: list[ParsedEntry], *, limit: int = ENTRIES_PER_APP) -> list[ParsedEntry]:
-    if not entries:
-        return []
-
     ordered = sorted(entries, key=lambda item: item.published_at, reverse=True)
     seen_external_ids: set[str] = set()
     result: list[ParsedEntry] = []

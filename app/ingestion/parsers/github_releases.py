@@ -31,8 +31,7 @@ async def parse_github_releases(
                 continue
         else:
             entry = entry_from_draft(draft)
-        if entry is not None:
-            results.append(entry)
+        results.append(entry)
         if len(results) >= limit:
             break
     return results

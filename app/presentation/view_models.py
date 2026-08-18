@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 
-from markupsafe import Markup, escape
+from markupsafe import Markup
 
 from app.catalog.apps import AppConfig
 from app.models.changelog import highlights_from_json
@@ -133,7 +133,6 @@ def month_key(value: datetime) -> str:
 
 
 def update_freshness(value: datetime | None) -> str:
-    """Return a CSS modifier for how recent an app's last update is."""
     if value is None:
         return ""
     now = datetime.now(timezone.utc).replace(tzinfo=None)
@@ -143,12 +142,6 @@ def update_freshness(value: datetime | None) -> str:
     if age <= timedelta(days=180):
         return "aging"
     return "stale"
-
-
-def _display_text(app: AppConfig, text: str) -> Markup:
-    if app.highlight_terms:
-        return highlight_terms(text, app.highlight_terms)
-    return Markup(escape(text))
 
 
 def build_feed_views(entries, apps_by_slug: dict[str, AppConfig]) -> list[FeedEntryView]:
@@ -165,9 +158,9 @@ def build_feed_views(entries, apps_by_slug: dict[str, AppConfig]) -> list[FeedEn
                 app_name=app.display_name,
                 app_logo_src=app.logo_src,
                 title=entry.title,
-                title_html=_display_text(app, entry.title),
+                title_html=highlight_terms(entry.title, app.highlight_terms),
                 highlights=highlights,
-                highlights_html=[_display_text(app, item) for item in highlights],
+                highlights_html=[highlight_terms(item, app.highlight_terms) for item in highlights],
                 source_url=entry.source_url,
                 published_at=entry.published_at,
                 published_label=format_date(entry.published_at),
