@@ -86,8 +86,19 @@ async def _fetch_entries(app: AppConfig) -> tuple[AppConfig, list[ParsedEntry] |
         return app, FetchError(app.slug, str(exc))
 
 
+def prune_removed_apps(db: Session, known_slugs: set[str]) -> None:
+    if not known_slugs:
+        return
+    db.execute(delete(ChangelogEntry).where(~ChangelogEntry.app_slug.in_(known_slugs)))
+    db.execute(delete(AppSyncStatus).where(~AppSyncStatus.app_slug.in_(known_slugs)))
+
+
 async def sync_all(db: Session) -> dict[str, str | None]:
-    outcomes = await asyncio.gather(*[_fetch_entries(app) for app in load_apps()])
+    apps = load_apps()
+    known_slugs = {app.slug for app in apps}
+    prune_removed_apps(db, known_slugs)
+    db.commit()
+    outcomes = await asyncio.gather(*[_fetch_entries(app) for app in apps])
 
     results: dict[str, str | None] = {}
     new_entries_count = 0

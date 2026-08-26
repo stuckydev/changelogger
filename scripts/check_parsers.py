@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -19,6 +20,7 @@ from app.ingestion.parsers.github_releases import parse_github_releases
 from app.ingestion.parsers.mtgarena_notes import extract_mtgarena_highlights
 from app.ingestion.parsers.notion_html import parse_notion_html
 from app.ingestion.parsers.rss import parse_rss
+from app.ingestion.parsers.steam_news import parse_steam_news
 from app.ingestion.parsers.zendesk_articles import parse_zendesk_articles
 from app.models.changelog import ParsedEntry
 from app.presentation.view_models import build_feed_views
@@ -170,6 +172,44 @@ def _check_pipeline() -> None:
     assert entries[0].highlights == ["Ship it"]
 
 
+def _check_steam_news() -> None:
+    payload = {
+        "appnews": {
+            "appid": 669330,
+            "newsitems": [
+                {
+                    "gid": "1",
+                    "title": "No title",
+                    "contents": "[list][*][p]Should be ignored[/p][/*][/list]",
+                    "date": 1700002000,
+                    "appid": 669330,
+                },
+                {
+                    "gid": "2",
+                    "title": "Update 1.0",
+                    "contents": (
+                        "[list][*][p]\\[Crawler] HP 10 → 12[/p][/*]"
+                        "[*][p]Fixed a bug[/p][/*][/list]"
+                        "[h1][b]Feedback & Bug Reports[/b][/h1]"
+                        "[list][*][p]Discord[/p][/*][/list]"
+                    ),
+                    "date": 1700001000,
+                    "appid": 669330,
+                },
+            ],
+        }
+    }
+    entries = parse_steam_news(
+        json.dumps(payload),
+        source_url="https://steamdb.info/app/669330/patchnotes/",
+        limit=5,
+    )
+    assert len(entries) == 1, entries
+    assert entries[0].title == "Update 1.0"
+    assert entries[0].highlights == ["[Crawler] HP 10 → 12", "Fixed a bug"]
+    assert entries[0].source_url == "https://store.steampowered.com/news/app/669330/view/2"
+
+
 def _check_mtg_view() -> None:
     class Row:
         id = "row1"
@@ -202,6 +242,7 @@ def main() -> None:
     _check_notion()
     _check_finalize_owns_normalize()
     _check_pipeline()
+    _check_steam_news()
     _check_mtg_view()
     print("ok")
 

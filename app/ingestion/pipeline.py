@@ -4,7 +4,7 @@ from typing import assert_never
 
 from app.catalog.apps import ENRICH_BY_PARSER, AppConfig, EnrichType, ParserType
 from app.ingestion.errors import FetchError
-from app.ingestion.fetcher import draft_from_release, fetch_github_releases, fetch_source
+from app.ingestion.fetcher import draft_from_release, fetch_github_releases, fetch_source, fetch_steam_news
 from app.ingestion.normalize import finalize_entry
 from app.ingestion.parsers.actual_blog import enrich_actual_blog
 from app.ingestion.parsers.cursor_html import parse_cursor_html
@@ -12,6 +12,7 @@ from app.ingestion.parsers.github_releases import GitHubEnricher, parse_github_r
 from app.ingestion.parsers.mtgarena_notes import extract_mtgarena_highlights
 from app.ingestion.parsers.notion_html import parse_notion_html
 from app.ingestion.parsers.rss import parse_rss
+from app.ingestion.parsers.steam_news import parse_steam_news, steam_appid_from_url
 from app.ingestion.parsers.todoist_html import parse_todoist_html
 from app.ingestion.parsers.zendesk_articles import HighlightExtractor, parse_zendesk_articles
 from app.models.changelog import ParsedEntry, pick_recent
@@ -79,5 +80,14 @@ async def _parse_source(app: AppConfig) -> list[ParsedEntry]:
                 limit=limit,
                 extract_highlights=ZENDESK_EXTRACTORS.get(app.enrich) if app.enrich else None,
             )
+        case "steam_news":
+            appid = steam_appid_from_url(app.source_url)
+            if not appid:
+                raise ValueError(f"App '{app.slug}': steam_news source_url must contain a Steam app id")
+            try:
+                payload = await fetch_steam_news(appid)
+            except FetchError as exc:
+                raise FetchError(app.slug, str(exc)) from exc
+            return parse_steam_news(payload, source_url=app.source_url, limit=limit)
         case _:
             assert_never(parser)

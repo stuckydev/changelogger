@@ -27,6 +27,7 @@ ParserType = Literal[
     "github_releases",
     "cursor_html",
     "zendesk_articles",
+    "steam_news",
 ]
 
 ENRICH_BY_PARSER: dict[ParserType, frozenset[EnrichType]] = {
@@ -39,7 +40,7 @@ def _resolve_logo_src(slug: str, logo_url: str | None) -> str:
     if logo_url:
         return logo_url
     logo_dir = STATIC_DIR / "logos"
-    for extension in (".png", ".ico", ".webp", ".svg"):
+    for extension in (".png", ".ico", ".webp", ".jpg", ".jpeg", ".svg"):
         path = logo_dir / f"{slug}{extension}"
         if path.exists():
             if extension != ".svg":

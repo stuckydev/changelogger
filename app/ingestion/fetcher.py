@@ -27,6 +27,20 @@ async def fetch_source(app: AppConfig) -> str:
     return response.text
 
 
+async def fetch_steam_news(appid: str, *, count: int = 20) -> str:
+    client = await get_http_client()
+    response = await client.get(
+        "https://api.steampowered.com/ISteamNews/GetNewsForApp/v2/",
+        params={"appid": appid, "count": count, "maxlength": 0},
+    )
+    if response.status_code >= 400:
+        raise FetchError(
+            appid,
+            f"HTTP {response.status_code} for Steam news API (app {appid})",
+        )
+    return response.text
+
+
 async def fetch_github_releases(github_repo: str, *, per_page: int = 30) -> list[dict]:
     client = await get_http_client()
     response = await client.get(

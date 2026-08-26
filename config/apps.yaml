@@ -1,5 +1,6 @@
 # App configuration — add new apps here.
-# parser: rss | todoist_html | notion_html | github_releases | cursor_html | zendesk_articles
+# parser: rss | todoist_html | notion_html | github_releases | cursor_html | zendesk_articles | steam_news
+# steam_news: source_url must contain a Steam app id (/app/669330 or appid=669330)
 # github_releases: set github_repo (releases page URL is derived automatically)
 # enrich: optional enricher (actual_blog | mtgarena_notes)
 # highlight_limit / highlight_terms: optional display policy
@@ -54,17 +55,17 @@ apps:
       - Sealed
       - Limited
 
+  - slug: mechabellum
+    name: Mechabellum
+    category: games
+    source_url: https://steamdb.info/app/669330/patchnotes/
+    parser: steam_news
+
   - slug: winutil
     name: WinUtil
     subtitle: Chris Titus Tech
     category: utilities
     github_repo: ChrisTitusTech/winutil
-    parser: github_releases
-
-  - slug: glazewm
-    name: GlazeWM
-    category: utilities
-    github_repo: glzr-io/glazewm
     parser: github_releases
 
   - slug: powertoys

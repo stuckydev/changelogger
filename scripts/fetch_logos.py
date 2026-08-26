@@ -46,11 +46,6 @@ SOURCES = {
         "filename": "cursor.png",
         "source_note": "cursor.com apple-touch-icon",
     },
-    "glazewm": {
-        "url": "https://github.com/glzr-io.png",
-        "filename": "glazewm.png",
-        "source_note": "glzr-io GitHub organization avatar",
-    },
     "mtgarena": {
         "url": "https://cdn.cloudflare.steamstatic.com/steam/apps/2141910/logo.png",
         "filename": "mtgarena.png",
@@ -65,6 +60,11 @@ SOURCES = {
         "url": "https://github.com/jetkvm.png",
         "filename": "jetkvm.png",
         "source_note": "jetkvm GitHub organization avatar",
+    },
+    "mechabellum": {
+        "url": "https://cdn.cloudflare.steamstatic.com/steam/apps/669330/library_600x900.jpg",
+        "filename": "mechabellum.jpg",
+        "source_note": "Steam Mechabellum library cover",
     },
 }
 
