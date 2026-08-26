@@ -220,7 +220,7 @@ def _check_steam_news() -> None:
     assert len(entries) == 1, entries
     assert entries[0].title == "Update 1.0"
     assert entries[0].highlights == ["[Crawler] HP 10 → 12", "Fixed a bug"]
-    assert entries[0].source_url == "https://store.steampowered.com/news/app/669330/view/2"
+    assert entries[0].source_url == "https://store.steampowered.com/news/app/669330/"
 
 
 def _check_mtg_view() -> None:

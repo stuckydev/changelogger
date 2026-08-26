@@ -64,7 +64,7 @@ def _parse_item(item: dict, *, fallback_source_url: str) -> ParsedEntry | None:
 
     appid = item.get("appid")
     source = (
-        f"https://store.steampowered.com/news/app/{appid}/view/{gid}"
+        f"https://store.steampowered.com/news/app/{appid}/"
         if appid
         else (item.get("url") or fallback_source_url).strip()
     )
