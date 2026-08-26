@@ -46,8 +46,11 @@
       <h3 class="feed-card__title">{{ entry.title_html }}</h3>
       {% endif %}
 
+      {% set extra_highlights = (entry.highlights_html|length - 2) if entry.highlights_html else 0 %}
+      {% set extra_label = "+1 weiteres" if extra_highlights == 1 else ("+" ~ extra_highlights ~ " weitere") %}
+
       {% if entry.highlights_html %}
-      <ul class="feed-card__highlights">
+      <ul class="feed-card__highlights{% if extra_highlights > 0 %} is-clipped{% endif %}" id="hl-{{ entry.id }}">
         {% for highlight in entry.highlights_html %}
         <li>{{ highlight }}</li>
         {% endfor %}
@@ -55,6 +58,15 @@
       {% endif %}
 
       <footer class="feed-card__footer">
+        {% if extra_highlights > 0 %}
+        <button
+          type="button"
+          class="feed-card__more-highlights"
+          data-collapsed-label="{{ extra_label }}"
+          aria-expanded="false"
+          aria-controls="hl-{{ entry.id }}"
+        >{{ extra_label }}</button>
+        {% endif %}
         <a class="feed-card__more" href="{{ entry.source_url }}" target="_blank" rel="noopener noreferrer">
           Zum Changelog
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">

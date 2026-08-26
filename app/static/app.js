@@ -303,6 +303,19 @@
     });
   });
 
+  if (feedRoot) {
+    feedRoot.addEventListener("click", (event) => {
+      const btn = event.target.closest(".feed-card__more-highlights");
+      if (!btn) return;
+      const list = btn.closest(".feed-card")?.querySelector(".feed-card__highlights");
+      if (!list) return;
+      const next = btn.getAttribute("aria-expanded") !== "true";
+      btn.setAttribute("aria-expanded", next ? "true" : "false");
+      list.classList.toggle("is-clipped", !next);
+      btn.textContent = next ? "Weniger" : btn.dataset.collapsedLabel || "Weitere";
+    });
+  }
+
   function toggleAppFilter(slug) {
     setFocusedApp(focusedAppSlug === slug ? null : slug);
     if (isMobileSidebar()) {
