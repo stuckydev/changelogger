@@ -8,6 +8,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
+from app.catalog.apps import apps_by_slug, load_apps
 from app.infra.http import close_http_client
 from app.infra.logos import ensure_logo_thumbs
 from app.ingestion.sync import sync_all
@@ -47,6 +48,8 @@ async def lifespan(_app: FastAPI):
     logger.info("Changelogger started")
     run_migrations(engine)
     ensure_logo_thumbs()
+    load_apps.cache_clear()
+    apps_by_slug.cache_clear()
 
     # Serve immediately; first sync fills the cache in the background.
     initial_sync_task = asyncio.create_task(_sync_once("Initial sync"))

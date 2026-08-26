@@ -5,13 +5,12 @@ import re
 from bs4 import BeautifulSoup
 
 from app.ingestion.fetcher import GitHubReleaseDraft
-from app.ingestion.normalize import has_useful_highlights, is_noise_line
-from app.ingestion.parsers.github_releases import extract_body_lines
-from app.infra.http import get_http_client
+from app.ingestion.normalize import has_useful_highlights
+from app.ingestion.parsers.github_releases import extract_body_lines, is_github_noise
 from app.models.changelog import ParsedEntry
 
 RELEASE_TITLE_PREFIX = re.compile(r"^(Pre-Release|Release)\s+", re.I)
-PR_LINE_RE = re.compile(r"^#\d+")
+PR_PREFIX_RE = re.compile(r"^#\d+\s*")
 BLOG_PATH_RE = re.compile(r"actualbudget\.org/blog/release-", re.I)
 VERSION_ONLY_RE = re.compile(r"^(?:release\s+)?v?[\d.]+$", re.I)
 MD_LINK_RE = re.compile(r"\[([^\]]*)\]\((https?://[^)]+)\)")
@@ -21,13 +20,23 @@ CHANGE_HEADING_RE = re.compile(
 )
 
 
-async def enrich_actual_blog(draft: GitHubReleaseDraft) -> ParsedEntry:
+def detail_url_from_draft(draft: GitHubReleaseDraft) -> str | None:
+    return _extract_detail_url(draft.body, RELEASE_TITLE_PREFIX.sub("", draft.title).strip() or draft.title)
+
+
+def blog_url_if_needed(draft: GitHubReleaseDraft) -> str | None:
+    if has_useful_highlights(_extract_change_lines(draft.body)):
+        return None
+    return detail_url_from_draft(draft)
+
+
+def parse_actual_draft(draft: GitHubReleaseDraft, blog_html: str | None = None) -> ParsedEntry:
     version_title = RELEASE_TITLE_PREFIX.sub("", draft.title).strip() or draft.title
-    detail_url = _extract_detail_url(draft.body, version_title)
+    detail_url = detail_url_from_draft(draft)
     raw_lines = _extract_change_lines(draft.body)
     page_title = ""
-    if not has_useful_highlights(raw_lines) and detail_url:
-        page_title, blog_lines = await _enrich_from_blog(detail_url)
+    if not has_useful_highlights(raw_lines) and blog_html:
+        page_title, blog_lines = _parse_actual_blog(blog_html)
         if blog_lines:
             raw_lines = blog_lines
 
@@ -127,37 +136,29 @@ def _extract_detail_url(body: str, title: str) -> str | None:
     return None
 
 
-async def _enrich_from_blog(detail_url: str) -> tuple[str, list[str]]:
-    if not BLOG_PATH_RE.search(detail_url):
-        return "", []
-    if not detail_url.endswith("/"):
-        detail_url = detail_url.rstrip("/") + "/"
-    client = await get_http_client()
-    response = await client.get(
-        detail_url,
-        headers={
-            "Accept": "text/html,application/xhtml+xml",
-            "Accept-Language": "en-US,en;q=0.9",
-        },
-    )
-    response.raise_for_status()
-    return _parse_actual_blog(response.text)
-
-
 def _parse_actual_blog(html: str) -> tuple[str, list[str]]:
     soup = BeautifulSoup(html, "html.parser")
     main = soup.find("main") or soup
     heading = main.find("h1")
     page_title = heading.get_text(" ", strip=True) if heading else ""
 
-    lines: list[str] = []
+    preferred: list[str] = []
+    from_prs: list[str] = []
     for li in main.find_all("li"):
         text = li.get_text(" ", strip=True)
-        if not text or PR_LINE_RE.match(text) or len(text) < 18 or is_noise_line(text):
+        if not text:
             continue
-        lines.append(text)
+        prefix = PR_PREFIX_RE.match(text)
+        if prefix:
+            text = text[prefix.end() :].strip()
+            bucket = from_prs
+        else:
+            bucket = preferred
+        if not text or len(text) < 18 or is_github_noise(text):
+            continue
+        bucket.append(text)
 
-    return page_title, lines
+    return page_title, preferred or from_prs
 
 
 def _pick_display_title(version_title: str, page_title: str, highlights: list[str]) -> str:

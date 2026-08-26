@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime, timezone
 
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
@@ -13,12 +12,13 @@ from app.ingestion.pipeline import parse_recent
 from app.models.changelog import ParsedEntry, highlights_to_json, make_entry_id
 from app.storage.entries_repo import save_last_new_entries_count
 from app.storage.models import AppSyncStatus, ChangelogEntry
+from app.utils.date_utils import now_utc_naive
 
 logger = logging.getLogger(__name__)
 
 
 def replace_recent(db: Session, app: AppConfig, entries: list[ParsedEntry]) -> int:
-    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    now = now_utc_naive()
     previous_ids = set(
         db.scalars(select(ChangelogEntry.external_id).where(ChangelogEntry.app_slug == app.slug))
     )
@@ -42,7 +42,7 @@ def replace_recent(db: Session, app: AppConfig, entries: list[ParsedEntry]) -> i
 
 
 def record_sync_status(db: Session, app_slug: str, error: str | None) -> None:
-    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    now = now_utc_naive()
     row = db.get(AppSyncStatus, app_slug)
     if row is None:
         db.add(AppSyncStatus(app_slug=app_slug, last_sync_at=now, last_error=error))
@@ -83,7 +83,7 @@ async def _fetch_entries(app: AppConfig) -> tuple[AppConfig, list[ParsedEntry] |
         return app, exc
     except Exception as exc:
         logger.exception("Sync failed for %s: %s", app.slug, exc)
-        return app, FetchError(app.slug, str(exc))
+        return app, FetchError(str(exc))
 
 
 def prune_removed_apps(db: Session, known_slugs: set[str]) -> None:

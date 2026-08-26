@@ -4,7 +4,7 @@ import re
 
 from markupsafe import Markup, escape
 
-from app.ingestion.normalize import strip_inline_markdown
+from app.utils.text import strip_inline_markdown
 
 
 def highlight_terms(text: str, terms: tuple[str, ...]) -> Markup:

@@ -4,28 +4,13 @@ import re
 
 from app.models.changelog import ParsedEntry
 from app.settings import HIGHLIGHT_LIMIT, HIGHLIGHT_MAX_CHARS
+from app.utils.text import strip_inline_markdown
 
 NOISE_RE = re.compile(
-    r"(update sponsors readme|chore:\s*update sponsors|github-actions\[bot\]|"
-    r"please watch it on youtube|see the announcement on x|learn more about|"
-    r"view release notes|latest versions|"
-    r"see the full release notes|microsoft store updates can sometimes lag|"
-    r"please note:|flathub|ad blocker|preventing the video|watch the demo|"
-    r"read the docs|join the |waitlist)",
+    r"(view release notes|latest versions|see the full release notes|"
+    r"learn more about|please note:|read the docs)",
     re.I,
 )
-MD_LINK_RE = re.compile(r"\[([^\]]+)\]\([^)]+\)")
-MD_CODE_RE = re.compile(r"`([^`]+)`")
-MD_STRIKE_RE = re.compile(r"~~(.+?)~~")
-MD_BOLD_RE = re.compile(r"\*\*(.+?)\*\*|__(.+?)__")
-
-
-def strip_inline_markdown(text: str) -> str:
-    cleaned = MD_LINK_RE.sub(r"\1", text)
-    cleaned = MD_CODE_RE.sub(r"\1", cleaned)
-    cleaned = MD_STRIKE_RE.sub(r"\1", cleaned)
-    cleaned = MD_BOLD_RE.sub(lambda match: match.group(1) or match.group(2), cleaned)
-    return cleaned.replace("**", "").replace("__", "")
 
 
 def clean_bullet(text: str) -> str:

@@ -5,9 +5,21 @@ from datetime import datetime
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.models.changelog import StoredEntry, highlights_from_json
 from app.storage.models import AppSyncStatus, ChangelogEntry, SyncMetadata
 
 LAST_NEW_ENTRIES_KEY = "last_new_entries_count"
+
+
+def _to_stored(row: ChangelogEntry) -> StoredEntry:
+    return StoredEntry(
+        id=row.id,
+        app_slug=row.app_slug,
+        title=row.title,
+        highlights=highlights_from_json(row.highlights),
+        source_url=row.source_url,
+        published_at=row.published_at,
+    )
 
 
 def list_entries(
@@ -15,14 +27,14 @@ def list_entries(
     *,
     app_slugs: list[str] | None = None,
     limit: int = 50,
-) -> list[ChangelogEntry]:
+) -> list[StoredEntry]:
     if app_slugs is not None and not app_slugs:
         return []
 
     stmt = select(ChangelogEntry).order_by(ChangelogEntry.published_at.desc()).limit(limit)
     if app_slugs:
         stmt = stmt.where(ChangelogEntry.app_slug.in_(app_slugs))
-    return list(db.scalars(stmt))
+    return [_to_stored(row) for row in db.scalars(stmt)]
 
 
 def count_entries(db: Session) -> int:

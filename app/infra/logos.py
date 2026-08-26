@@ -25,6 +25,20 @@ def thumb_url_for_slug(slug: str) -> str | None:
     return None
 
 
+def resolve_logo_src(slug: str, logo_url: str | None = None) -> str:
+    if logo_url:
+        return logo_url
+    for extension in (".png", ".ico", ".webp", ".jpg", ".jpeg", ".svg"):
+        path = LOGO_DIR / f"{slug}{extension}"
+        if path.exists():
+            if extension != ".svg":
+                thumb = thumb_url_for_slug(slug)
+                if thumb:
+                    return thumb
+            return f"/static/logos/{slug}{extension}"
+    return f"/static/logos/{slug}.png"
+
+
 def _write_thumb(source: Path, target: Path) -> None:
     with Image.open(source) as image:
         image = image.convert("RGBA")

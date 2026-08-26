@@ -27,17 +27,17 @@ def feed_partial(request: Request, db: Annotated[Session, Depends(get_db)]):
     return render_page(
         request,
         "partials/feed.html",
-        build_feed_context(db, request).as_template_dict(),
+        {"feed": build_feed_context(db, request)},
     )
 
 
 @router.get("/sidebar")
 def sidebar_partial(request: Request, db: Annotated[Session, Depends(get_db)]):
-    ctx = build_sidebar_context(db, request).as_template_dict()
+    sidebar = build_sidebar_context(db, request)
     return JSONResponse(
         {
-            "apps_html": render_template("partials/sidebar_apps.html", ctx),
-            "sync_html": render_template("partials/sidebar_sync.html", ctx),
+            "apps_html": render_template("partials/sidebar_apps.html", {"sidebar": sidebar}),
+            "sync_html": render_template("partials/sidebar_sync.html", {"sidebar": sidebar}),
         }
     )
 

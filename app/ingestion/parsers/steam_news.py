@@ -9,6 +9,7 @@ from bs4 import BeautifulSoup
 from app.ingestion.normalize import is_noise_line
 from app.models.changelog import ParsedEntry
 from app.settings import ENTRIES_PER_APP
+from app.utils.date_utils import now_utc_naive
 
 STEAM_APPID_RE = re.compile(r"(?:/app/|[?&]appid=)(\d+)", re.I)
 UNTITLED_RE = re.compile(r"^no title$", re.I)
@@ -130,4 +131,4 @@ def _published_at(item: dict) -> datetime:
     try:
         return datetime.fromtimestamp(int(raw), timezone.utc).replace(tzinfo=None)
     except (TypeError, ValueError):
-        return datetime.now(timezone.utc).replace(tzinfo=None)
+        return now_utc_naive()

@@ -30,8 +30,16 @@ def parse_datetime(value: str | None) -> datetime | None:
         return None
 
 
+def now_utc_naive() -> datetime:
+    return datetime.now(timezone.utc).replace(tzinfo=None)
+
+
+def now_display() -> datetime:
+    return datetime.now(DISPLAY_TZ)
+
+
 def parse_datetime_or_now(value: str | None) -> datetime:
-    return parse_datetime(value) or datetime.now(timezone.utc).replace(tzinfo=None)
+    return parse_datetime(value) or now_utc_naive()
 
 
 def utc_naive_to_display(value: datetime) -> datetime:
@@ -43,6 +51,6 @@ def format_sync_time(value: datetime) -> str:
 
 
 def seconds_until_next_hour() -> float:
-    now = datetime.now(DISPLAY_TZ)
+    now = now_display()
     next_hour = now.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
     return (next_hour - now).total_seconds()

@@ -40,7 +40,7 @@ def _trim_app_rows(engine: Engine) -> None:
     with engine.begin() as conn:
         conn.execute(
             text(
-                f"""
+                """
                 DELETE FROM changelog_entries
                 WHERE id NOT IN (
                     SELECT id FROM (
@@ -50,8 +50,9 @@ def _trim_app_rows(engine: Engine) -> None:
                                ) AS row_num
                         FROM changelog_entries
                     ) ranked
-                    WHERE row_num <= {ENTRIES_PER_APP}
+                    WHERE row_num <= :keep
                 )
                 """
-            )
+            ),
+            {"keep": ENTRIES_PER_APP},
         )

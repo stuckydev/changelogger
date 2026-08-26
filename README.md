@@ -45,9 +45,9 @@ Apps are defined in `config/apps.yaml`:
     parser: github_releases
 ```
 
-Parser types: `rss`, `github_releases`, `todoist_html`, `notion_html`, `cursor_html`, `zendesk_articles`.
+Parser types: `rss`, `github_releases`, `todoist_html`, `notion_html`, `cursor_html`, `zendesk_articles`, `steam_news`, `actual_blog`, `mtgarena_notes`.
 
-For Actual Budget use `parser: github_releases` with `enrich: actual_blog`. For MTG Arena use `parser: zendesk_articles` with `enrich: mtgarena_notes`. Optional per-app policy: `highlight_limit`, `highlight_terms`. GitHub apps require `github_repo` and read the Releases API (not the atom feed).
+For Actual Budget use `parser: actual_blog` with `github_repo`. For MTG Arena use `parser: mtgarena_notes`. Optional per-app policy: `highlight_limit`, `highlight_terms`. GitHub apps require `github_repo` and read the Releases API (not the atom feed).
 
 Restart the app after changes — sources sync on startup.
 

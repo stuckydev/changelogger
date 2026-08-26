@@ -11,21 +11,22 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from app.catalog.apps import AppConfig
+from app.catalog.apps import AppConfig, load_apps
 from app.ingestion import pipeline
 from app.ingestion.fetcher import draft_from_release
-from app.ingestion.normalize import finalize_entry, normalize_highlights
-from app.ingestion.parsers.actual_blog import enrich_actual_blog
-from app.ingestion.parsers.github_releases import parse_github_releases
+from app.ingestion.normalize import finalize_entry, is_noise_line, normalize_highlights
+from app.ingestion.parsers.actual_blog import parse_actual_draft
+from app.ingestion.parsers.cursor_html import parse_cursor_html
+from app.ingestion.parsers.github_releases import is_github_noise, parse_github_releases
 from app.ingestion.parsers.mtgarena_notes import extract_mtgarena_highlights
 from app.ingestion.parsers.notion_html import parse_notion_html
 from app.ingestion.parsers.rss import parse_rss
 from app.ingestion.parsers.steam_news import parse_steam_news
+from app.ingestion.parsers.todoist_html import parse_todoist_html
 from app.ingestion.parsers.zendesk_articles import parse_zendesk_articles
-from app.models.changelog import ParsedEntry
+from app.models.changelog import ParsedEntry, StoredEntry
 from app.presentation.highlight import highlight_terms
 from app.presentation.view_models import build_feed_views
-
 
 GITHUB_RELEASES = [
     {
@@ -94,13 +95,49 @@ NOTION_HTML = """
 </body></html>
 """
 
+CURSOR_HTML = """
+<html><body>
+<article>
+  <h1>Agent layout</h1>
+  <span class="label">0.50.5</span>
+  <time datetime="2024-06-01T12:00:00Z">Jun 1, 2024</time>
+  <a href="/changelog/agent-layout">Changelog</a>
+  <ul>
+    <li>Fixed the sidebar crash on reload</li>
+    <li>Play</li>
+  </ul>
+</article>
+</body></html>
+"""
+
+TODOIST_HTML = """
+<html><body>
+<article>
+  <h2>June 1, 2024</h2>
+  <h3>New: Quick add</h3>
+  <ul>
+    <li>📣 Faster quick add</li>
+    <li>🐛 Fixed a crash</li>
+  </ul>
+</article>
+</body></html>
+"""
+
+
+def _app(**kwargs) -> AppConfig:
+    kwargs.setdefault("logo_src", "/static/logos/demo.png")
+    return AppConfig(**kwargs)
+
 
 def _check_github() -> None:
     drafts = [draft for release in GITHUB_RELEASES if (draft := draft_from_release(release))]
-    entries = asyncio.run(parse_github_releases(drafts, limit=5))
+    entries = parse_github_releases(drafts, limit=5)
     assert len(entries) == 1, entries
     assert entries[0].title == "v1.2.3"
     assert "Fixed the thing" in entries[0].highlights
+    store_noise = "Microsoft Store updates can sometimes lag behind"
+    assert is_github_noise(store_noise)
+    assert not is_noise_line(store_noise)
 
 
 def _check_rss() -> None:
@@ -123,9 +160,49 @@ def _check_zendesk() -> None:
 def _check_actual() -> None:
     draft = draft_from_release(ACTUAL_RELEASE)
     assert draft is not None
-    entry = asyncio.run(enrich_actual_blog(draft))
+    entry = parse_actual_draft(draft)
     assert entry.title == "Improved reconciliation for shared accounts"
     assert "Improved reconciliation for shared accounts" in entry.highlights
+
+    patch_draft = draft_from_release(
+        {
+            "id": 11,
+            "tag_name": "v26.8.1",
+            "name": "v26.8.1",
+            "prerelease": False,
+            "draft": False,
+            "html_url": "https://github.com/actualbudget/actual/releases/tag/v26.8.1",
+            "published_at": "2024-10-02T12:00:00Z",
+            "body": ":link: [View release notes](https://actualbudget.org/blog/release-26.8.1)\n",
+        }
+    )
+    assert patch_draft is not None
+    patch_blog = """
+    <html><body><main>
+      <h1>Release 26.8.1</h1>
+      <ul>
+        <li>#8628 Fix intermittent app freezes with 100% CPU usage — thanks matt-fidd</li>
+        <li>#8662 Fix context menu showing on multi-account views — thanks matt-fidd</li>
+        <li>announcement</li>
+      </ul>
+    </main></body></html>
+    """
+    patch = parse_actual_draft(patch_draft, patch_blog)
+    assert patch.title == "Release 26.8.1"
+    assert patch.highlights[0] == "Fix intermittent app freezes with 100% CPU usage — thanks matt-fidd"
+    assert not any(line.startswith("#") for line in patch.highlights)
+
+    mixed_blog = """
+    <html><body><main>
+      <h1>Release 26.8.0</h1>
+      <ul>
+        <li>Age of Money report released as a first-party feature</li>
+        <li>#8540 Promote the Age of Money report to a stable feature — thanks youngcw</li>
+      </ul>
+    </main></body></html>
+    """
+    mixed = parse_actual_draft(patch_draft, mixed_blog)
+    assert mixed.highlights == ["Age of Money report released as a first-party feature"]
 
 
 def _check_notion() -> None:
@@ -134,6 +211,24 @@ def _check_notion() -> None:
     assert entries[0].title == "Databases everywhere"
     assert entries[0].source_url == "https://www.notion.com/releases/2024-06-01/"
     assert any("databases" in line.lower() for line in entries[0].highlights)
+
+
+def _check_cursor() -> None:
+    entries = parse_cursor_html(CURSOR_HTML, source_url="https://cursor.com/changelog", limit=5)
+    assert len(entries) == 1, entries
+    assert entries[0].title == "0.50.5 · Agent layout"
+    assert entries[0].source_url == "https://cursor.com/changelog/agent-layout"
+    assert "Fixed the sidebar crash on reload" in entries[0].highlights
+    assert "Play" not in entries[0].highlights
+
+
+def _check_todoist() -> None:
+    entries = parse_todoist_html(TODOIST_HTML, source_url="https://example.com/changelog", limit=5)
+    assert len(entries) == 1, entries
+    assert entries[0].title == "Quick add"
+    assert entries[0].external_id == "2024-06-01"
+    assert entries[0].highlights[0] == "📣 Faster quick add"
+    assert "🐛 Fixed a crash" in entries[0].highlights
 
 
 def _check_finalize_owns_normalize() -> None:
@@ -164,7 +259,7 @@ def _check_finalize_owns_normalize() -> None:
 
 
 def _check_pipeline() -> None:
-    app = AppConfig(
+    app = _app(
         slug="demo",
         name="Demo",
         source_url="https://example.com",
@@ -224,24 +319,23 @@ def _check_steam_news() -> None:
 
 
 def _check_mtg_view() -> None:
-    class Row:
-        id = "row1"
-        app_slug = "mtgarena"
-        title = "Friends Challenge update"
-        highlights = '["Draft queue fix"]'
-        source_url = "https://example.com"
-        published_at = datetime(2024, 6, 1)
-
-    app = AppConfig(
+    row = StoredEntry(
+        id="row1",
+        app_slug="mtgarena",
+        title="Friends Challenge update",
+        highlights=["Draft queue fix"],
+        source_url="https://example.com",
+        published_at=datetime(2024, 6, 1),
+    )
+    app = _app(
         slug="mtgarena",
         name="MTG Arena",
         source_url="https://example.com",
-        parser="zendesk_articles",
+        parser="mtgarena_notes",
         category="games",
-        enrich="mtgarena_notes",
         highlight_terms=("Challenge", "Friends", "Draft", "Sealed", "Limited"),
     )
-    views = build_feed_views([Row()], {"mtgarena": app})
+    views = build_feed_views([row], {"mtgarena": app})
     assert len(views) == 1
     html = str(views[0].title_html)
     assert "<mark" not in html
@@ -251,16 +345,26 @@ def _check_mtg_view() -> None:
     assert str(dirty) == "Search and responsiveness: Better"
 
 
+def _check_catalog() -> None:
+    apps = {app.slug: app for app in load_apps()}
+    assert apps["actual"].parser == "actual_blog"
+    assert apps["mtgarena"].parser == "mtgarena_notes"
+    assert apps["actual"].github_repo == "actualbudget/actual"
+
+
 def main() -> None:
     _check_github()
     _check_rss()
     _check_zendesk()
     _check_actual()
     _check_notion()
+    _check_cursor()
+    _check_todoist()
     _check_finalize_owns_normalize()
     _check_pipeline()
     _check_steam_news()
     _check_mtg_view()
+    _check_catalog()
     print("ok")
 
 

@@ -17,6 +17,16 @@ class ParsedEntry:
     published_at: datetime
 
 
+@dataclass(frozen=True)
+class StoredEntry:
+    id: str
+    app_slug: str
+    title: str
+    highlights: list[str]
+    source_url: str
+    published_at: datetime
+
+
 def make_entry_id(app_slug: str, external_id: str) -> str:
     digest = hashlib.sha256(f"{app_slug}:{external_id}".encode()).hexdigest()
     return digest[:32]

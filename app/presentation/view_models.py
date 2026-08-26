@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 
 from markupsafe import Markup
 
 from app.catalog.apps import AppConfig
-from app.models.changelog import highlights_from_json
+from app.models.changelog import StoredEntry
 from app.presentation.highlight import highlight_terms
+from app.utils.date_utils import now_display, now_utc_naive, utc_naive_to_display
 
 
 @dataclass
@@ -30,12 +31,6 @@ class FeedContext:
     entries: list[FeedEntryView]
     has_sync_data: bool
 
-    def as_template_dict(self) -> dict:
-        return {
-            "entries": self.entries,
-            "has_sync_data": self.has_sync_data,
-        }
-
 
 @dataclass
 class SidebarContext:
@@ -47,37 +42,11 @@ class SidebarContext:
     sync_errors: dict[str, str]
     last_new_entries_count: int | None
 
-    def as_template_dict(self) -> dict:
-        return {
-            "apps": self.apps,
-            "muted_apps": self.muted_apps,
-            "app_last_updates": self.app_last_updates,
-            "sync_errors": self.sync_errors,
-            "last_sync": self.last_sync,
-            "last_new_entries_count": self.last_new_entries_count,
-        }
-
 
 @dataclass
 class PageContext:
     feed: FeedContext
     sidebar: SidebarContext
-
-    @property
-    def theme(self) -> str:
-        return self.sidebar.theme
-
-    @property
-    def muted_apps(self) -> list[str]:
-        return self.sidebar.muted_apps
-
-    @property
-    def entries(self) -> list[FeedEntryView]:
-        return self.feed.entries
-
-    @property
-    def has_sync_data(self) -> bool:
-        return self.feed.has_sync_data
 
 
 GERMAN_MONTHS = (
@@ -98,11 +67,12 @@ GERMAN_MONTHS = (
 
 
 def format_date(value: datetime) -> str:
-    return value.strftime("%d.%m.%Y")
+    return utc_naive_to_display(value).strftime("%d.%m.%Y")
 
 
 def days_since(value: datetime) -> int:
-    return (datetime.now().date() - value.date()).days
+    published = utc_naive_to_display(value).date()
+    return (now_display().date() - published).days
 
 
 def format_relative_date(value: datetime) -> str:
@@ -113,30 +83,31 @@ def format_relative_date(value: datetime) -> str:
         return "gestern"
     if delta < 7:
         return f"vor {delta} Tagen"
-    return value.strftime("%d.%m.%Y")
+    return format_date(value)
 
 
 def format_sidebar_date(value: datetime | None) -> str:
     if value is None:
         return "—"
-    if value.year < datetime.now().year:
-        return value.strftime("%d.%m.%Y")
-    return value.strftime("%d.%m.")
+    display = utc_naive_to_display(value)
+    if display.year < now_display().year:
+        return display.strftime("%d.%m.%Y")
+    return display.strftime("%d.%m.")
 
 
 def format_month_year(value: datetime) -> str:
-    return f"{GERMAN_MONTHS[value.month]} {value.year}"
+    display = utc_naive_to_display(value)
+    return f"{GERMAN_MONTHS[display.month]} {display.year}"
 
 
 def month_key(value: datetime) -> str:
-    return value.strftime("%Y-%m")
+    return utc_naive_to_display(value).strftime("%Y-%m")
 
 
 def update_freshness(value: datetime | None) -> str:
     if value is None:
         return ""
-    now = datetime.now(timezone.utc).replace(tzinfo=None)
-    age = now - value
+    age = now_utc_naive() - value
     if age <= timedelta(days=30):
         return "fresh"
     if age <= timedelta(days=180):
@@ -144,13 +115,14 @@ def update_freshness(value: datetime | None) -> str:
     return "stale"
 
 
-def build_feed_views(entries, apps_by_slug: dict[str, AppConfig]) -> list[FeedEntryView]:
+def build_feed_views(
+    entries: list[StoredEntry], apps_by_slug: dict[str, AppConfig]
+) -> list[FeedEntryView]:
     views: list[FeedEntryView] = []
     for entry in entries:
         app = apps_by_slug.get(entry.app_slug)
         if not app:
             continue
-        highlights = highlights_from_json(entry.highlights)
         views.append(
             FeedEntryView(
                 id=entry.id,
@@ -159,8 +131,10 @@ def build_feed_views(entries, apps_by_slug: dict[str, AppConfig]) -> list[FeedEn
                 app_logo_src=app.logo_src,
                 title=entry.title,
                 title_html=highlight_terms(entry.title, app.highlight_terms),
-                highlights=highlights,
-                highlights_html=[highlight_terms(item, app.highlight_terms) for item in highlights],
+                highlights=entry.highlights,
+                highlights_html=[
+                    highlight_terms(item, app.highlight_terms) for item in entry.highlights
+                ],
                 source_url=entry.source_url,
                 published_at=entry.published_at,
                 published_label=format_date(entry.published_at),

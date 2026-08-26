@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable
 import re
 
 from bs4 import BeautifulSoup
@@ -12,26 +11,28 @@ from app.settings import ENTRIES_PER_APP
 
 _MD_BULLET_RE = re.compile(r"^[-*+]\s+(.+)$")
 _MD_HEADING_RE = re.compile(r"^#{1,3}\s+(.*)$")
+_GITHUB_NOISE_RE = re.compile(
+    r"(update sponsors readme|chore:\s*update sponsors|github-actions\[bot\]|"
+    r"please watch it on youtube|see the announcement on x|"
+    r"microsoft store updates can sometimes lag|flathub|"
+    r"ad blocker|preventing the video|watch the demo|"
+    r"join the |waitlist)",
+    re.I,
+)
 
-GitHubEnricher = Callable[[GitHubReleaseDraft], Awaitable[ParsedEntry]]
+
+def is_github_noise(text: str) -> bool:
+    return is_noise_line(text) or bool(_GITHUB_NOISE_RE.search(text))
 
 
-async def parse_github_releases(
+def parse_github_releases(
     drafts: list[GitHubReleaseDraft],
     *,
     limit: int = ENTRIES_PER_APP,
-    enrich: GitHubEnricher | None = None,
 ) -> list[ParsedEntry]:
     results: list[ParsedEntry] = []
     for draft in drafts:
-        if enrich is not None:
-            try:
-                entry = await enrich(draft)
-            except ValueError:
-                continue
-        else:
-            entry = entry_from_draft(draft)
-        results.append(entry)
+        results.append(entry_from_draft(draft))
         if len(results) >= limit:
             break
     return results
@@ -62,14 +63,14 @@ def _extract_html_lines(html: str) -> list[str]:
     lines = [
         li.get_text(" ", strip=True)
         for li in soup.find_all("li")
-        if li.get_text(" ", strip=True) and not is_noise_line(li.get_text(" ", strip=True))
+        if li.get_text(" ", strip=True) and not is_github_noise(li.get_text(" ", strip=True))
     ]
     if lines:
         return lines
     return [
         p.get_text(" ", strip=True)
         for p in soup.find_all("p")
-        if p.get_text(" ", strip=True) and not is_noise_line(p.get_text(" ", strip=True))
+        if p.get_text(" ", strip=True) and not is_github_noise(p.get_text(" ", strip=True))
     ]
 
 
@@ -80,7 +81,7 @@ def _extract_markdown_lines(body: str) -> list[str]:
         if not match:
             continue
         text = match.group(1).strip()
-        if text and not is_noise_line(text):
+        if text and not is_github_noise(text):
             lines.append(text)
     if lines:
         return lines
@@ -89,5 +90,5 @@ def _extract_markdown_lines(body: str) -> list[str]:
         for line in body.splitlines()
         if len(line.strip()) >= 24
         and not _MD_HEADING_RE.match(line.strip())
-        and not is_noise_line(line.strip())
+        and not is_github_noise(line.strip())
     ]

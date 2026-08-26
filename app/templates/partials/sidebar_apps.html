@@ -1,6 +1,6 @@
-{% for app in apps %}
-{% set is_muted = app.slug in muted_apps %}
-{% set sync_error = sync_errors.get(app.slug) %}
+{% for app in sidebar.apps %}
+{% set is_muted = app.slug in sidebar.muted_apps %}
+{% set sync_error = sidebar.sync_errors.get(app.slug) %}
 <li
   class="app-filter-item{% if is_muted %} is-muted{% endif %}{% if sync_error %} has-sync-error{% endif %}"
   data-app-slug="{{ app.slug }}"
@@ -35,7 +35,7 @@
         </span>
       </span>
     </div>
-    {% set last_update = app_last_updates.get(app.slug) %}
+    {% set last_update = sidebar.app_last_updates.get(app.slug) %}
     {% if last_update %}
     <time
       class="app-filter-item__date app-filter-item__date--{{ last_update | update_freshness }}"

@@ -392,12 +392,14 @@
   window.setInterval(() => {
     if (document.visibilityState === "visible") {
       refreshSidebar();
+      refreshFeed();
     }
   }, SIDEBAR_POLL_MS);
 
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") {
       refreshSidebar();
+      refreshFeed();
     }
   });
 

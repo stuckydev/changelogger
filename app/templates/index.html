@@ -1,23 +1,11 @@
 {% extends "base.html" %}
+{% from "partials/brand_mark.html" import brand_mark %}
 
 {% block body %}
 <div class="app-shell">
   <header class="topbar">
     <a href="/" class="topbar__brand topbar__brand-link" id="topbar-home" aria-label="Startseite">
-      <svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true">
-        <defs>
-          <linearGradient id="bmg-t" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stop-color="#818cf8"/>
-            <stop offset="1" stop-color="#22d3ee"/>
-          </linearGradient>
-        </defs>
-        <rect width="64" height="64" rx="16" fill="url(#bmg-t)" opacity="0.14"/>
-        <rect x="1.5" y="1.5" width="61" height="61" rx="14.5" fill="none" stroke="url(#bmg-t)" stroke-width="3" opacity="0.45"/>
-        <rect x="15" y="17" width="22" height="6" rx="3" fill="url(#bmg-t)"/>
-        <circle cx="45.5" cy="20" r="4.5" fill="url(#bmg-t)"/>
-        <rect x="15" y="29" width="34" height="6" rx="3" fill="url(#bmg-t)" opacity="0.62"/>
-        <rect x="15" y="41" width="27" height="6" rx="3" fill="url(#bmg-t)" opacity="0.38"/>
-      </svg>
+      {{ brand_mark("bmg-t") }}
       <span class="brand-wordmark">Changelogger</span>
     </a>
     <button
@@ -41,20 +29,7 @@
   <aside class="app-sidebar" id="app-sidebar" aria-label="Menü" aria-hidden="true">
     <div class="app-sidebar__header">
       <a href="/" class="app-sidebar__brand app-sidebar__brand-link" id="sidebar-home" aria-label="Startseite">
-        <svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true">
-          <defs>
-            <linearGradient id="bmg-s" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0" stop-color="#818cf8"/>
-              <stop offset="1" stop-color="#22d3ee"/>
-            </linearGradient>
-          </defs>
-          <rect width="64" height="64" rx="16" fill="url(#bmg-s)" opacity="0.14"/>
-          <rect x="1.5" y="1.5" width="61" height="61" rx="14.5" fill="none" stroke="url(#bmg-s)" stroke-width="3" opacity="0.45"/>
-          <rect x="15" y="17" width="22" height="6" rx="3" fill="url(#bmg-s)"/>
-          <circle cx="45.5" cy="20" r="4.5" fill="url(#bmg-s)"/>
-          <rect x="15" y="29" width="34" height="6" rx="3" fill="url(#bmg-s)" opacity="0.62"/>
-          <rect x="15" y="41" width="27" height="6" rx="3" fill="url(#bmg-s)" opacity="0.38"/>
-        </svg>
+        {{ brand_mark("bmg-s") }}
         <div class="app-sidebar__brand-text">
           <h1 class="brand-wordmark">Changelogger</h1>
           <p class="brand-tagline">Alle Updates im Blick</p>
@@ -99,9 +74,7 @@
 
   <main class="app-main" id="main-content">
     <div id="feed-root" aria-live="polite" aria-busy="false">
-      {% with entries=page.entries, has_sync_data=page.has_sync_data %}
-        {% include "partials/feed.html" %}
-      {% endwith %}
+      {% include "partials/feed.html" %}
     </div>
   </main>
 

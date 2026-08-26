@@ -1,10 +1,9 @@
 # App configuration — add new apps here.
-# parser: rss | todoist_html | notion_html | github_releases | cursor_html | zendesk_articles | steam_news
+# parser: rss | todoist_html | notion_html | github_releases | cursor_html | zendesk_articles | steam_news | actual_blog | mtgarena_notes
 # steam_news: source_url must contain a Steam app id (/app/669330 or appid=669330)
-# github_releases: set github_repo (releases page URL is derived automatically)
-# enrich: optional enricher (actual_blog | mtgarena_notes)
+# github_releases / actual_blog: set github_repo (releases page URL is derived automatically)
 # highlight_limit / highlight_terms: optional display policy
-# logo_url: optional, defaults to /static/logos/{slug}.svg
+# logo_url: optional, defaults to /static/logos/{slug}.{png,ico,...}
 # category: saas | selfhosted | games | utilities
 
 apps:
@@ -37,16 +36,14 @@ apps:
     name: Actual Budget
     category: selfhosted
     github_repo: actualbudget/actual
-    parser: github_releases
-    enrich: actual_blog
+    parser: actual_blog
 
   - slug: mtgarena
     name: MTG Arena
     subtitle: Client
     category: games
     source_url: https://mtgarena-support.wizards.com/api/v2/help_center/en-us/sections/4402585813268/articles.json?per_page=5&sort_by=created_at&sort_order=desc
-    parser: zendesk_articles
-    enrich: mtgarena_notes
+    parser: mtgarena_notes
     highlight_limit: 18
     highlight_terms:
       - Challenge

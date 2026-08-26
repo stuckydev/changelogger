@@ -19,12 +19,16 @@ class GitHubReleaseDraft:
     external_id: str
 
 
-async def fetch_source(app: AppConfig) -> str:
+async def fetch_text(url: str) -> str:
     client = await get_http_client()
-    response = await client.get(app.source_url)
+    response = await client.get(url)
     if response.status_code >= 400:
-        raise FetchError(app.slug, f"HTTP {response.status_code} for {app.source_url}")
+        raise FetchError(f"HTTP {response.status_code} for {url}")
     return response.text
+
+
+async def fetch_source(app: AppConfig) -> str:
+    return await fetch_text(app.source_url)
 
 
 async def fetch_steam_news(appid: str, *, count: int = 20) -> str:
@@ -34,10 +38,7 @@ async def fetch_steam_news(appid: str, *, count: int = 20) -> str:
         params={"appid": appid, "count": count, "maxlength": 0},
     )
     if response.status_code >= 400:
-        raise FetchError(
-            appid,
-            f"HTTP {response.status_code} for Steam news API (app {appid})",
-        )
+        raise FetchError(f"HTTP {response.status_code} for Steam news API (app {appid})")
     return response.text
 
 
@@ -50,12 +51,12 @@ async def fetch_github_releases(github_repo: str, *, per_page: int = 30) -> list
     )
     if response.status_code >= 400:
         raise FetchError(
-            github_repo,
-            f"HTTP {response.status_code} for GitHub releases API ({github_repo})",
+            f"HTTP {response.status_code} for GitHub releases API ({github_repo})"
         )
     data = response.json()
     if not isinstance(data, list):
-        return []
+        message = data.get("message") if isinstance(data, dict) else type(data).__name__
+        raise FetchError(f"GitHub releases API ({github_repo}) returned {message}")
     return data
 
 
