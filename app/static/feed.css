@@ -304,11 +304,10 @@
 }
 
 .feed-card__keyword {
-  background: color-mix(in srgb, var(--accent) 22%, transparent);
-  color: inherit;
-  font-weight: 600;
-  padding: 0 0.18em;
-  border-radius: 0.25em;
+  color: var(--update-stale);
+  font-weight: 650;
+  background: none;
+  padding: 0;
 }
 
 .feed-card__footer {

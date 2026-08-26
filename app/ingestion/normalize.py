@@ -14,10 +14,23 @@ NOISE_RE = re.compile(
     r"read the docs|join the |waitlist)",
     re.I,
 )
+MD_LINK_RE = re.compile(r"\[([^\]]+)\]\([^)]+\)")
+MD_CODE_RE = re.compile(r"`([^`]+)`")
+MD_STRIKE_RE = re.compile(r"~~(.+?)~~")
+MD_BOLD_RE = re.compile(r"\*\*(.+?)\*\*|__(.+?)__")
+
+
+def strip_inline_markdown(text: str) -> str:
+    cleaned = MD_LINK_RE.sub(r"\1", text)
+    cleaned = MD_CODE_RE.sub(r"\1", cleaned)
+    cleaned = MD_STRIKE_RE.sub(r"\1", cleaned)
+    cleaned = MD_BOLD_RE.sub(lambda match: match.group(1) or match.group(2), cleaned)
+    return cleaned.replace("**", "").replace("__", "")
 
 
 def clean_bullet(text: str) -> str:
     cleaned = re.sub(r"\[\[[!#\w-]+\]\]", "", text)
+    cleaned = strip_inline_markdown(cleaned)
     cleaned = re.sub(r"\s+", " ", cleaned.strip(" -•\t"))
     if not cleaned:
         return ""
@@ -58,7 +71,7 @@ def finalize_entry(entry: ParsedEntry, *, highlight_limit: int | None = None) ->
     highlights = normalize_highlights(entry.highlights, limit=highlight_limit or HIGHLIGHT_LIMIT)
     return ParsedEntry(
         external_id=entry.external_id,
-        title=entry.title.strip() or "Latest update",
+        title=strip_inline_markdown(entry.title).strip() or "Latest update",
         highlights=highlights,
         source_url=entry.source_url,
         published_at=entry.published_at,

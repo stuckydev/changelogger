@@ -23,6 +23,7 @@ from app.ingestion.parsers.rss import parse_rss
 from app.ingestion.parsers.steam_news import parse_steam_news
 from app.ingestion.parsers.zendesk_articles import parse_zendesk_articles
 from app.models.changelog import ParsedEntry
+from app.presentation.highlight import highlight_terms
 from app.presentation.view_models import build_feed_views
 
 
@@ -139,15 +140,27 @@ def _check_finalize_owns_normalize() -> None:
     raw = ParsedEntry(
         external_id="1",
         title="  Title  ",
-        highlights=["  Fixed the thing  ", "view release notes", "Fixed the thing"],
+        highlights=[
+            "  Fixed the thing  ",
+            "view release notes",
+            "Fixed the thing",
+            "**Search and responsiveness:** Better search",
+        ],
         source_url="https://example.com",
         published_at=datetime(2024, 6, 1),
     )
     finalized = finalize_entry(raw, highlight_limit=5)
     assert finalized.title == "Title"
+    assert "**" not in finalized.highlights[1]
     assert finalized.highlights == normalize_highlights(
-        ["  Fixed the thing  ", "view release notes", "Fixed the thing"]
+        [
+            "  Fixed the thing  ",
+            "view release notes",
+            "Fixed the thing",
+            "**Search and responsiveness:** Better search",
+        ]
     )
+    assert finalized.highlights[1] == "Search and responsiveness: Better search"
 
 
 def _check_pipeline() -> None:
@@ -231,7 +244,11 @@ def _check_mtg_view() -> None:
     views = build_feed_views([Row()], {"mtgarena": app})
     assert len(views) == 1
     html = str(views[0].title_html)
-    assert "<mark" in html and "Friends" in html and "Challenge" in html
+    assert "<mark" not in html
+    assert '<span class="feed-card__keyword">Friends</span>' in html
+    assert "Challenge" in html
+    dirty = highlight_terms("**Search and responsiveness:** Better", ())
+    assert str(dirty) == "Search and responsiveness: Better"
 
 
 def main() -> None:
