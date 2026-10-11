@@ -26,11 +26,6 @@ SOURCES = {
         "filename": "1password.png",
         "source_note": "1password.com apple-touch-icon",
     },
-    "notion": {
-        "url": "https://www.notion.com/front-static/logo-ios.png",
-        "filename": "notion.png",
-        "source_note": "notion.com official logo-ios",
-    },
     "actual": {
         "url": "https://raw.githubusercontent.com/actualbudget/actual/master/packages/desktop-client/public/favicon.ico",
         "filename": "actual.ico",
@@ -61,10 +56,10 @@ SOURCES = {
         "filename": "jetkvm.png",
         "source_note": "jetkvm GitHub organization avatar",
     },
-    "mechabellum": {
-        "url": "https://cdn.cloudflare.steamstatic.com/steam/apps/669330/library_600x900.jpg",
-        "filename": "mechabellum.jpg",
-        "source_note": "Steam Mechabellum library cover",
+    "naowhforever": {
+        "url": "https://github.com/naowh-gaming.png",
+        "filename": "naowhforever.png",
+        "source_note": "naowh-gaming GitHub organization avatar",
     },
 }
 

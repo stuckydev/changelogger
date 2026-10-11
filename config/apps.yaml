@@ -20,12 +20,6 @@ apps:
     source_url: https://releases.1password.com/windows/stable/index.xml
     parser: rss
 
-  - slug: notion
-    name: Notion
-    category: saas
-    source_url: https://www.notion.com/releases
-    parser: notion_html
-
   - slug: cursor
     name: Cursor
     category: saas
@@ -52,11 +46,12 @@ apps:
       - Sealed
       - Limited
 
-  - slug: mechabellum
-    name: Mechabellum
+  - slug: naowhforever
+    name: Naowh Forever
+    subtitle: UI
     category: games
-    source_url: https://steamdb.info/app/669330/patchnotes/
-    parser: steam_news
+    github_repo: naowh-gaming/NaowhForever
+    parser: github_releases
 
   - slug: winutil
     name: WinUtil

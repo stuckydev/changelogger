@@ -17,7 +17,7 @@ from app.ingestion.fetcher import draft_from_release
 from app.ingestion.normalize import finalize_entry, is_noise_line, normalize_highlights
 from app.ingestion.parsers.actual_blog import parse_actual_draft
 from app.ingestion.parsers.cursor_html import parse_cursor_html
-from app.ingestion.parsers.github_releases import is_github_noise, parse_github_releases
+from app.ingestion.parsers.github_releases import extract_body_lines, is_github_noise, parse_github_releases
 from app.ingestion.parsers.mtgarena_notes import extract_mtgarena_highlights
 from app.ingestion.parsers.notion_html import parse_notion_html
 from app.ingestion.parsers.rss import parse_rss
@@ -138,6 +138,16 @@ def _check_github() -> None:
     store_noise = "Microsoft Store updates can sometimes lag behind"
     assert is_github_noise(store_noise)
     assert not is_noise_line(store_noise)
+    wrapped = extract_body_lines(
+        "- Bag Space: puts the cheapest item at the far end\n"
+        " with the cheapest on the left.\n"
+        "- Short fix\n"
+        " ![](https://example.com/a.gif)\n"
+    )
+    assert wrapped == [
+        "Bag Space: puts the cheapest item at the far end with the cheapest on the left.",
+        "Short fix",
+    ]
 
 
 def _check_rss() -> None:

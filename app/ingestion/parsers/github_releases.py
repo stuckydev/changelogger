@@ -11,6 +11,7 @@ from app.settings import ENTRIES_PER_APP
 
 _MD_BULLET_RE = re.compile(r"^[-*+]\s+(.+)$")
 _MD_HEADING_RE = re.compile(r"^#{1,3}\s+(.*)$")
+_IMAGE_ONLY_RE = re.compile(r"^!\[[^\]]*\]\([^)]+\)$")
 _GITHUB_NOISE_RE = re.compile(
     r"(update sponsors readme|chore:\s*update sponsors|github-actions\[bot\]|"
     r"please watch it on youtube|see the announcement on x|"
@@ -76,13 +77,26 @@ def _extract_html_lines(html: str) -> list[str]:
 
 def _extract_markdown_lines(body: str) -> list[str]:
     lines: list[str] = []
-    for raw in body.splitlines():
-        match = _MD_BULLET_RE.match(raw.strip())
-        if not match:
-            continue
-        text = match.group(1).strip()
+    parts: list[str] = []
+
+    def flush() -> None:
+        if not parts:
+            return
+        text = " ".join(parts).strip()
+        parts.clear()
         if text and not is_github_noise(text):
             lines.append(text)
+
+    for raw in body.splitlines():
+        stripped = raw.strip()
+        match = _MD_BULLET_RE.match(stripped)
+        if match:
+            flush()
+            parts.append(match.group(1).strip())
+            continue
+        if parts and raw[:1].isspace() and stripped and not _IMAGE_ONLY_RE.match(stripped):
+            parts.append(stripped)
+    flush()
     if lines:
         return lines
     return [
