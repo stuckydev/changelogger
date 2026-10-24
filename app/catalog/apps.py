@@ -8,7 +8,7 @@ from typing import Literal, get_args
 import yaml
 
 from app.infra.logos import resolve_logo_src
-from app.settings import CONFIG_PATH, HIGHLIGHT_LIMIT
+from app.settings import CONFIG_PATH, ENTRIES_PER_APP, HIGHLIGHT_LIMIT
 
 AppCategory = Literal["saas", "selfhosted", "games", "utilities"]
 
@@ -47,6 +47,7 @@ class AppConfig:
     github_repo: str | None = None
     highlight_limit: int = HIGHLIGHT_LIMIT
     highlight_terms: tuple[str, ...] = ()
+    entries_limit: int = ENTRIES_PER_APP
 
     @property
     def display_name(self) -> str:
@@ -96,6 +97,9 @@ def load_apps() -> tuple[AppConfig, ...]:
             raise ValueError(f"App '{slug}': source_url is required")
 
         terms = item.get("highlight_terms") or []
+        entries_limit = int(item.get("entries_limit", ENTRIES_PER_APP))
+        if entries_limit < 1:
+            raise ValueError(f"App '{slug}': entries_limit must be at least 1")
         apps.append(
             AppConfig(
                 slug=slug,
@@ -108,6 +112,7 @@ def load_apps() -> tuple[AppConfig, ...]:
                 github_repo=github_repo,
                 highlight_limit=int(item.get("highlight_limit", HIGHLIGHT_LIMIT)),
                 highlight_terms=tuple(str(term) for term in terms),
+                entries_limit=entries_limit,
             )
         )
     return tuple(apps)

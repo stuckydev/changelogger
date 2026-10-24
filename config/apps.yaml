@@ -2,7 +2,7 @@
 # parser: rss | todoist_html | notion_html | github_releases | cursor_html | zendesk_articles | steam_news | actual_blog | mtgarena_notes
 # steam_news: source_url must contain a Steam app id (/app/669330 or appid=669330)
 # github_releases / actual_blog: set github_repo (releases page URL is derived automatically)
-# highlight_limit / highlight_terms: optional display policy
+# highlight_limit / highlight_terms / entries_limit: optional per-app policy
 # logo_url: optional, defaults to /static/logos/{slug}.{png,ico,...}
 # category: saas | selfhosted | games | utilities
 
@@ -52,6 +52,7 @@ apps:
     category: games
     github_repo: naowh-gaming/NaowhForever
     parser: github_releases
+    entries_limit: 1
 
   - slug: winutil
     name: WinUtil

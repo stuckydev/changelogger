@@ -26,7 +26,7 @@ from app.ingestion.parsers.todoist_html import parse_todoist_html
 from app.ingestion.parsers.zendesk_articles import parse_zendesk_articles
 from app.models.changelog import ParsedEntry, StoredEntry
 from app.presentation.highlight import highlight_terms
-from app.presentation.view_models import build_feed_views
+from app.presentation.view_models import build_feed_views, cap_entries_per_app
 
 GITHUB_RELEASES = [
     {
@@ -355,11 +355,55 @@ def _check_mtg_view() -> None:
     assert str(dirty) == "Search and responsiveness: Better"
 
 
+def _entry(slug: str, day: int) -> StoredEntry:
+    return StoredEntry(
+        id=f"{slug}-{day}",
+        app_slug=slug,
+        title=slug,
+        highlights=[],
+        source_url="https://example.com",
+        published_at=datetime(2026, 10, day),
+    )
+
+
+def _check_feed_cap() -> None:
+    apps = {
+        "naowhforever": _app(
+            slug="naowhforever",
+            name="Naowh Forever",
+            source_url="https://example.com",
+            parser="github_releases",
+            category="games",
+            entries_limit=1,
+        ),
+        "cursor": _app(
+            slug="cursor",
+            name="Cursor",
+            source_url="https://example.com",
+            parser="cursor_html",
+            category="saas",
+        ),
+    }
+    capped = cap_entries_per_app(
+        [
+            _entry("naowhforever", 24),
+            _entry("naowhforever", 23),
+            _entry("cursor", 22),
+            _entry("cursor", 21),
+            _entry("cursor", 20),
+        ],
+        apps,
+    )
+    assert [entry.id for entry in capped] == ["naowhforever-24", "cursor-22", "cursor-21"]
+
+
 def _check_catalog() -> None:
     apps = {app.slug: app for app in load_apps()}
     assert apps["actual"].parser == "actual_blog"
     assert apps["mtgarena"].parser == "mtgarena_notes"
     assert apps["actual"].github_repo == "actualbudget/actual"
+    assert apps["naowhforever"].entries_limit == 1
+    assert apps["cursor"].entries_limit == 2
 
 
 def main() -> None:
@@ -374,6 +418,7 @@ def main() -> None:
     _check_pipeline()
     _check_steam_news()
     _check_mtg_view()
+    _check_feed_cap()
     _check_catalog()
     print("ok")
 

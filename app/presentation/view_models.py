@@ -115,6 +115,24 @@ def update_freshness(value: datetime | None) -> str:
     return "stale"
 
 
+def cap_entries_per_app(
+    entries: list[StoredEntry], apps_by_slug: dict[str, AppConfig]
+) -> list[StoredEntry]:
+    """Keep each app's newest entries. `entries` must already be newest-first."""
+    kept: list[StoredEntry] = []
+    seen: dict[str, int] = {}
+    for entry in entries:
+        app = apps_by_slug.get(entry.app_slug)
+        if app is None:
+            continue
+        count = seen.get(entry.app_slug, 0)
+        if count >= app.entries_limit:
+            continue
+        seen[entry.app_slug] = count + 1
+        kept.append(entry)
+    return kept
+
+
 def build_feed_views(
     entries: list[StoredEntry], apps_by_slug: dict[str, AppConfig]
 ) -> list[FeedEntryView]:

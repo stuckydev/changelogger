@@ -4,7 +4,13 @@ from fastapi import Request
 from sqlalchemy.orm import Session
 
 from app.catalog.apps import apps_by_slug, apps_sorted_by_last_update
-from app.presentation.view_models import FeedContext, PageContext, SidebarContext, build_feed_views
+from app.presentation.view_models import (
+    FeedContext,
+    PageContext,
+    SidebarContext,
+    build_feed_views,
+    cap_entries_per_app,
+)
 from app.settings import COOKIE_MUTED_APPS, COOKIE_THEME, DEFAULT_THEME, THEMES
 from app.storage.entries_repo import (
     count_entries,
@@ -46,8 +52,10 @@ def build_sidebar_context(db: Session, request: Request) -> SidebarContext:
 def build_feed_context(db: Session, request: Request) -> FeedContext:
     _, muted = _request_theme_and_muted(request)
     visible = visible_apps_from_muted(muted)
+    apps = apps_by_slug()
+    entries = cap_entries_per_app(list_entries(db, app_slugs=visible), apps)
     return FeedContext(
-        entries=build_feed_views(list_entries(db, app_slugs=visible), apps_by_slug()),
+        entries=build_feed_views(entries, apps),
         has_sync_data=count_entries(db) > 0,
     )
 

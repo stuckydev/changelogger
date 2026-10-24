@@ -17,7 +17,6 @@ from app.ingestion.parsers.steam_news import parse_steam_news, steam_appid_from_
 from app.ingestion.parsers.todoist_html import parse_todoist_html
 from app.ingestion.parsers.zendesk_articles import parse_zendesk_articles
 from app.models.changelog import ParsedEntry, pick_recent
-from app.settings import ENTRIES_PER_APP
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +28,7 @@ async def parse_recent(app: AppConfig) -> list[ParsedEntry]:
         raise FetchError(str(exc)) from exc
 
     entries = [finalize_entry(entry, highlight_limit=app.highlight_limit) for entry in entries]
-    entries = pick_recent(entries)
+    entries = pick_recent(entries, limit=app.entries_limit)
     if not entries:
         raise FetchError("No changelog entry found in source")
     return entries
@@ -69,7 +68,7 @@ async def _parse_actual_blog(app: AppConfig, limit: int) -> list[ParsedEntry]:
 
 
 async def _parse_source(app: AppConfig) -> list[ParsedEntry]:
-    limit = ENTRIES_PER_APP
+    limit = app.entries_limit
     parser: ParserType = app.parser
     match parser:
         case "github_releases":
