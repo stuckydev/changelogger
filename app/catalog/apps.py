@@ -33,6 +33,8 @@ ParserType = Literal[
 
 GITHUB_PARSERS: frozenset[str] = frozenset({"github_releases", "actual_blog"})
 _PARSER_NAMES: frozenset[str] = frozenset(get_args(ParserType))
+# Used when the mounted config file has no entries_limit for this slug.
+_ENTRY_LIMIT_FALLBACK: dict[str, int] = {"naowhforever": 1}
 
 
 @dataclass(frozen=True)
@@ -97,7 +99,8 @@ def load_apps() -> tuple[AppConfig, ...]:
             raise ValueError(f"App '{slug}': source_url is required")
 
         terms = item.get("highlight_terms") or []
-        entries_limit = int(item.get("entries_limit", ENTRIES_PER_APP))
+        fallback = _ENTRY_LIMIT_FALLBACK.get(slug, ENTRIES_PER_APP)
+        entries_limit = int(item.get("entries_limit", fallback))
         if entries_limit < 1:
             raise ValueError(f"App '{slug}': entries_limit must be at least 1")
         apps.append(

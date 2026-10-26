@@ -5,6 +5,7 @@ from sqlalchemy.engine import Engine
 
 import app.storage.models  # noqa: F401 — register ORM tables with Base.metadata
 
+from app.catalog.apps import load_apps
 from app.settings import ENTRIES_PER_APP
 from app.storage.db import Base
 from app.storage.models import ChangelogEntry
@@ -56,3 +57,23 @@ def _trim_app_rows(engine: Engine) -> None:
             ),
             {"keep": ENTRIES_PER_APP},
         )
+        for app in load_apps():
+            if app.entries_limit >= ENTRIES_PER_APP:
+                continue
+            conn.execute(
+                text(
+                    """
+                    DELETE FROM changelog_entries
+                    WHERE app_slug = :slug
+                      AND id NOT IN (
+                        SELECT id FROM (
+                            SELECT id FROM changelog_entries
+                            WHERE app_slug = :slug
+                            ORDER BY published_at DESC
+                            LIMIT :keep
+                        )
+                      )
+                    """
+                ),
+                {"slug": app.slug, "keep": app.entries_limit},
+            )
